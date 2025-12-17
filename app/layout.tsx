@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
+import { AuthProvider } from "@/context/AuthContext";
 
 // #region Metadata Configuration
 // Global metadata applied to all pages in the application
@@ -21,10 +22,12 @@ export default function RootLayout({
     // #region HTML Structure
     <html lang="en">
       <body>
-        {/* Global Navigation */}
-        <Navbar />
-        {/* Page Content */}
-        {children}
+        <AuthProvider>
+          {/* Global Navigation */}
+          <Navbar />
+          {/* Page Content */}
+          {children}
+        </AuthProvider>
       </body>
     </html>
     // #endregion HTML Structure
