@@ -3,6 +3,7 @@ import { Timestamp } from "firebase/firestore";
 export interface UserDoc {
   email: string;
   displayName: string;
+  password: string;
   photoURL?: string;
   isOnline: boolean;
   lastSeen: Timestamp;
