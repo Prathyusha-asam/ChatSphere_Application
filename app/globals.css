@@ -39,3 +39,53 @@ body {
 .float {
   animation: floatSlow 8s ease-in-out infinite;
 }
+
+/* ---------- Chat Page ---------- */
+
+/* Title */
+.chat-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Status texts */
+.chat-loading {
+  color: #555;
+}
+
+.chat-error {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.chat-empty {
+  color: #6b7280;
+}
+
+/* Messages container */
+.chat-messages {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Message bubble */
+.chat-message {
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  border-radius: 0.75rem;
+  width: fit-content;
+  max-width: 70%;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .chat-message {
+    background-color: #1f2937;
+    color: #f9fafb;
+  }
+}

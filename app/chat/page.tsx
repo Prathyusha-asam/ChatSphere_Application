@@ -1,40 +1,45 @@
 "use client";
 
-import { useState } from "react";
-import ConversationList from "@/components/chat/ConversationList";
-import { Conversation } from "@/types/conversation.types";
+import { useSearchParams } from "next/navigation";
+import { useFirestore } from "@/hooks/useFirestore";
+import MessageInput from "@/components/chat/MessageInput";
 
-const mockConversations: Conversation[] = [
-  {
-    id: "1",
-    participants: ["Alice"],
-    lastMessage: "Hey, how are you?",
-    lastMessageTime: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    participants: ["Bob"],
-    lastMessage: "Let’s meet tomorrow",
-    lastMessageTime: new Date().toISOString(),
-  },
-];
 
 export default function ChatPage() {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const conversationId = searchParams.get("cid") || "";
+
+  const { messages, loading, error } = useFirestore(conversationId);
 
   return (
-    <div className="flex h-screen">
-      <ConversationList
-        conversations={mockConversations}
-        activeConversationId={activeId}
-        onSelectConversation={setActiveId}
-      />
+    <div className="p-6">
+      <h1 className="text-xl font-semibold mb-4">Chat</h1>
 
-      <div className="flex-1 flex items-center justify-center">
-        {activeId
-          ? `Conversation ${activeId}`
-          : "Select a conversation"}
-      </div>
+      {!conversationId && (
+        <div className="mt-4">
+          <p className="text-gray-500 mb-3">
+            No conversation yet
+          </p>
+
+          <a
+            href="/start-chat"
+            className="inline-block bg-purple-600 text-white px-4 py-2 rounded"
+          >
+            Start Chat
+          </a>
+        </div>
+      )}
+
+      {loading && <p>Loading messages...</p>}
+      {error && <p>{error}</p>}
+
+      {messages.map((msg) => (
+        <div key={msg.id}>{msg.text}</div>
+      ))}
+
+      {conversationId && (
+        <MessageInput conversationId={conversationId} />
+      )}
     </div>
   );
 }
