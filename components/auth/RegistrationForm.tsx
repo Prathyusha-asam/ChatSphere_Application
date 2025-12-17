@@ -91,6 +91,7 @@ export default function RegisterForm() {
       {error && <p className="text-red-500 mb-3">{error}</p>}
       {success && <p className="text-green-600 mb-3">{success}</p>}
 
+    <h3 >Email</h3>
       <input
         type="email"
         placeholder="Email"
@@ -99,6 +100,7 @@ export default function RegisterForm() {
         onChange={(e) => setEmail(e.target.value)}
       />
 
+        <h3>Password</h3>
       <input
         type="password"
         placeholder="Password"
@@ -107,6 +109,7 @@ export default function RegisterForm() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
+    <h3>Confirm Password</h3>
       <input
         type="password"
         placeholder="Confirm Password"
@@ -118,15 +121,15 @@ export default function RegisterForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
       >
-        {loading ? "Registering..." : "Register"}
+        {loading ? "Registering..." : "Create Account"}
       </button>
 
       <p className="text-sm text-center mt-4">
         Already have an account?{" "}
         <span
-          className="text-blue-600 cursor-pointer"
+          className="text-purple-600 cursor-pointer"
           onClick={() => router.push("/auth/login")}
         >
           Login

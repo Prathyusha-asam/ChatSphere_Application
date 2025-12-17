@@ -73,14 +73,14 @@ export default function HomePage() {
 
       <div className="flex flex-col sm:flex-row gap-4 mb-14 z-10">
         <Link
-          href="/register"
+          href="/auth/register"
           className="px-10 py-3 bg-purple-600 text-white text-lg font-medium rounded-lg shadow-md hover:bg-purple-700 transition"
         >
           Get Started
         </Link>
 
         <Link
-          href="/login"
+          href="/auth/login"
           className="px-10 py-3 bg-white border border-gray-300 text-lg font-medium rounded-lg hover:bg-gray-100 transition"
         >
           Login
