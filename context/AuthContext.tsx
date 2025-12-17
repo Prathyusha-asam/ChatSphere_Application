@@ -1,10 +1,22 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode,} from "react";
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User,} from "firebase/auth";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User,
+} from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-//region Types
+// #region Types
 /**
  * Represents authenticated user data used across the app
  */
@@ -13,6 +25,7 @@ export interface AuthUser {
   email: string | null;
   displayName?: string | null;
 }
+
 /**
  * Shape of the authentication context
  */
@@ -20,22 +33,21 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
+
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
-//endregion Types
+// #endregion Types
 
-//region Context
+// #region Context
 /**
  * Global authentication context
  */
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
-//endregion Context
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// #endregion Context
 
-//region Provider
+// #region Provider
 /**
  * AuthProvider
  * - Maintains Firebase authentication state
@@ -46,29 +58,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  //region Firebase Auth Listener
+  // 🔹 Keep auth state in sync with Firebase
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (firebaseUser: User | null) => {
-        if (firebaseUser) {
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-          });
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: User | null) => {
+      if (firebaseUser) {
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+        });
+      } else {
+        setUser(null);
       }
-    );
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, []);
-  //endregion Firebase Auth Listener
 
-  //region Login
+  // 🔹 Login
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -80,9 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
-  //endregion Login
 
-  //region Register
+  // 🔹 Register
   const register = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -94,14 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
-  //endregion Register
 
-  //region Logout
+  // 🔹 Logout
   const logout = async () => {
-    await signOut(auth);
-    setUser(null);
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch {
+      setError("Logout failed");
+    }
   };
-  //endregion Logout
 
   return (
     <AuthContext.Provider
@@ -111,20 +120,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+// #endregion Provider
 
-//endregion Provider
-
-//region Hook
+// #region Hook
 /**
  * useAuth
  * Provides access to authentication context
  */
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error("useAuth must be used within AuthProvider");
   }
+
   return context;
 }
-
-//endregion Hook
+// #endregion Hook
