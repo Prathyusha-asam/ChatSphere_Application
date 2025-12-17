@@ -16,12 +16,12 @@ export interface AuthUser {
   email: string | null;
   displayName?: string | null;
 }
-
+ 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
-
+ 
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError("Logout failed");
     }
   };
-
+ 
   return (
     <AuthContext.Provider
       value={{ user, loading, error, login, register, logout }}

@@ -1,84 +1,62 @@
 "use client";
-
+ 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { FirebaseError } from "firebase/app";
-import { auth } from "@/lib/firebase";
-
+import { signUp } from "@/lib/auth";
+ 
 export default function RegisterForm() {
   const router = useRouter();
-
+ 
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
+ 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // 🔹 Email validation
-  const isValidEmail = (email: string): boolean =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  // 🔹 Password strength validation
-  const isStrongPassword = (password: string): boolean =>
-    /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
-
+ 
+ 
+ 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-
-    // 🔸 Validation
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid email address");
+ 
+    if (!displayName.trim()) {
+      setError("Name is required");
       return;
     }
-
-    if (!isStrongPassword(password)) {
-      setError(
-        "Password must be at least 8 characters long and include 1 uppercase letter and 1 number"
-      );
-      return;
-    }
-
+ 
+ 
+ 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-
+ 
     try {
       setLoading(true);
-
-      // 🔹 Firebase Registration
-      await createUserWithEmailAndPassword(auth, email, password);
-
+ 
+      // 🔹 Use AUTH SERVICE (linked correctly)
+      await signUp(email, password, displayName);
+ 
       setSuccess("Registration successful! Redirecting to login...");
-
+ 
       setTimeout(() => {
         router.push("/auth/login");
       }, 1500);
     } catch (error: unknown) {
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case "auth/email-already-in-use":
-            setError("Email already registered");
-            break;
-          case "auth/weak-password":
-            setError("Password is too weak");
-            break;
-          default:
-            setError("Registration failed. Please try again.");
-        }
+      if (error instanceof Error) {
+        setError(error.message);
       } else {
-        setError("Unexpected error occurred");
+        setError("Registration failed");
       }
     } finally {
       setLoading(false);
     }
   };
-
+ 
   return (
     <form
       onSubmit={handleSubmit}
@@ -87,11 +65,20 @@ export default function RegisterForm() {
       <h2 className="text-2xl font-semibold mb-4 text-center">
         Create Account
       </h2>
-
+ 
       {error && <p className="text-red-500 mb-3">{error}</p>}
       {success && <p className="text-green-600 mb-3">{success}</p>}
-
-    <h3 >Email</h3>
+ 
+      <h3>Name</h3>
+      <input
+        type="text"
+        placeholder="Full Name"
+        className="w-full border p-2 mb-3 rounded"
+        value={displayName}
+        onChange={(e) => setDisplayName(e.target.value)}
+      />
+ 
+      <h3>Email</h3>
       <input
         type="email"
         placeholder="Email"
@@ -99,8 +86,8 @@ export default function RegisterForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-
-        <h3>Password</h3>
+ 
+      <h3>Password</h3>
       <input
         type="password"
         placeholder="Password"
@@ -108,8 +95,8 @@ export default function RegisterForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-
-    <h3>Confirm Password</h3>
+ 
+      <h3>Confirm Password</h3>
       <input
         type="password"
         placeholder="Confirm Password"
@@ -117,7 +104,7 @@ export default function RegisterForm() {
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
       />
-
+ 
       <button
         type="submit"
         disabled={loading}
@@ -125,7 +112,7 @@ export default function RegisterForm() {
       >
         {loading ? "Registering..." : "Create Account"}
       </button>
-
+ 
       <p className="text-sm text-center mt-4">
         Already have an account?{" "}
         <span
@@ -138,3 +125,5 @@ export default function RegisterForm() {
     </form>
   );
 }
+ 
+ 
