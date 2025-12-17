@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { sendMessage } from "@/lib/messages";
 import { auth } from "@/lib/firebase";
+import { setTypingStatus } from "@/lib/typing";
+import { useEffect } from "react";
 
 interface Props {
   conversationId: string;
@@ -11,6 +13,23 @@ interface Props {
 export default function MessageInput({ conversationId }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+  if (!auth.currentUser) return;
+
+  if (text.trim()) {
+    setTypingStatus(conversationId, auth.currentUser.uid, true);
+  } else {
+    setTypingStatus(conversationId, auth.currentUser.uid, false);
+  }
+
+  return () => {
+    if (auth.currentUser) {
+      setTypingStatus(conversationId, auth.currentUser.uid, false);
+    }
+  };
+}, [text, conversationId]);
+
 
   const handleSend = async () => {
     if (!auth.currentUser) return;
