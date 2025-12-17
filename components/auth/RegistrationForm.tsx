@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { FirebaseError } from "firebase/app";
-import { auth } from "@/lib/firebase";
+import { signUp } from "@/lib/auth";
 
 export default function RegisterForm() {
   const router = useRouter();
 
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,32 +15,34 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+const strength = getPasswordStrength(password);
 
-  // 🔹 Email validation
-  const isValidEmail = (email: string): boolean =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // 🔹 Password strength validation
-  const isStrongPassword = (password: string): boolean =>
-    /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
+function getPasswordStrength(password: string) {
+  let score = 0;
+
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { label: "Weak", color: "bg-red-500", percent: 25 };
+  if (score === 2) return { label: "Medium", color: "bg-yellow-500", percent: 50 };
+  if (score === 3) return { label: "Good", color: "bg-blue-500", percent: 75 };
+  return { label: "Strong", color: "bg-green-500", percent: 100 };
+}
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    // 🔸 Validation
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid email address");
+    if (!displayName.trim()) {
+      setError("Name is required");
       return;
     }
 
-    if (!isStrongPassword(password)) {
-      setError(
-        "Password must be at least 8 characters long and include 1 uppercase letter and 1 number"
-      );
-      return;
-    }
+
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -51,8 +52,8 @@ export default function RegisterForm() {
     try {
       setLoading(true);
 
-      // 🔹 Firebase Registration
-      await createUserWithEmailAndPassword(auth, email, password);
+      // 🔹 Use AUTH SERVICE (linked correctly)
+      await signUp(email, password, displayName);
 
       setSuccess("Registration successful! Redirecting to login...");
 
@@ -60,19 +61,10 @@ export default function RegisterForm() {
         router.push("/auth/login");
       }, 1500);
     } catch (error: unknown) {
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case "auth/email-already-in-use":
-            setError("Email already registered");
-            break;
-          case "auth/weak-password":
-            setError("Password is too weak");
-            break;
-          default:
-            setError("Registration failed. Please try again.");
-        }
+      if (error instanceof Error) {
+        setError(error.message);
       } else {
-        setError("Unexpected error occurred");
+        setError("Registration failed");
       }
     } finally {
       setLoading(false);
@@ -82,7 +74,9 @@ export default function RegisterForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-96 p-6 bg-white border rounded shadow"
+      className="relative w-96 p-6 rounded-xl border border-black/20
+           bg-blur/80 backdrop-blur-lg
+           shadow-xl overflow-hidden"
     >
       <h2 className="text-2xl font-semibold mb-4 text-center">
         Create Account
@@ -91,7 +85,16 @@ export default function RegisterForm() {
       {error && <p className="text-red-500 mb-3">{error}</p>}
       {success && <p className="text-green-600 mb-3">{success}</p>}
 
-    <h3 >Email</h3>
+      <h3>Name</h3>
+      <input
+        type="text"
+        placeholder="Full Name"
+        className="w-full border p-2 mb-3 rounded"
+        value={displayName}
+        onChange={(e) => setDisplayName(e.target.value)}
+      />
+
+      <h3>Email</h3>
       <input
         type="email"
         placeholder="Email"
@@ -100,7 +103,7 @@ export default function RegisterForm() {
         onChange={(e) => setEmail(e.target.value)}
       />
 
-        <h3>Password</h3>
+      <h3>Password</h3>
       <input
         type="password"
         placeholder="Password"
@@ -108,8 +111,22 @@ export default function RegisterForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
+      {/* 🔹 Password Strength Meter */}
+{password && (
+  <div className="mb-3">
+    <div className="h-2 w-full bg-gray-200 rounded">
+      <div
+        className={`h-2 rounded transition-all duration-300 ${strength.color}`}
+        style={{ width: `${strength.percent}%` }}
+      />
+    </div>
+    <p className="text-xs mt-1 text-gray-600">
+      Strength: <span className="font-medium">{strength.label}</span>
+    </p>
+  </div>
+)}
 
-    <h3>Confirm Password</h3>
+      <h3>Confirm Password</h3>
       <input
         type="password"
         placeholder="Confirm Password"

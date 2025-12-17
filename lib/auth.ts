@@ -1,4 +1,4 @@
-import {createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,User,} from "firebase/auth";
+import {createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,User, fetchSignInMethodsForEmail,} from "firebase/auth";
 import { auth } from "./firebase";
 import { createUserProfile } from "./firestore";
  
@@ -34,6 +34,7 @@ export async function signUp(
   try {
     validateEmail(email);
     validatePassword(password);
+   
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,

@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
 import {
-  signInWithEmailAndPassword,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
 } from "firebase/auth";
+
+
 import { auth } from "@/lib/firebase";
+import { login } from "@/lib/auth";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -20,48 +23,42 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
 
-    
-    if (!email.includes("@")) {
-      setError("Please enter a valid email address");
-      return;
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+
+  try {
+    setLoading(true);
+
+    await setPersistence(
+      auth,
+      rememberMe
+        ? browserLocalPersistence
+        : browserSessionPersistence
+    );
+
+    await login(email, password);
+
+    router.push("/chat");
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      setError(error.message);
+    } else {
+      setError("Login failed");
     }
+  } finally {
+    setLoading(false);
+  }
+};
 
-    
-    if (!password) {
-      setError("Password is required");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      
-      await setPersistence(
-        auth,
-        rememberMe
-          ? browserLocalPersistence
-          : browserSessionPersistence
-      );
-
-      await signInWithEmailAndPassword(auth, email, password);
-
-      
-      router.push("/chat");
-    } catch (err) {
-      setError("Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-96 p-6 border rounded shadow"
+      className="relative w-96 p-6 rounded-xl border border-black/20
+           bg-blur/80 backdrop-blur-lg
+           shadow-xl overflow-hidden"
     >
       <h2 className="text-xl font-semibold mb-4">Login</h2>
 
@@ -82,6 +79,7 @@ export default function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
+      
 
       <label className="flex items-center gap-2 mb-4">
         <input
@@ -95,10 +93,22 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 rounded"
+        className="w-full bg-purple-600 text-white py-2 rounded"
       >
         {loading ? "Logging in..." : "Login"}
       </button>
+      <div className="mt-4 text-center">
+  <p className="text-sm text-center mt-4">
+    Don&apos;t have an account?{" "}
+    <button
+      type="button"
+      onClick={() => router.push("/auth/register")}
+      className="text-purple-600 font-medium hover:underline"
+    >
+      Register
+    </button>
+  </p>
+</div>
     </form>
   );
 }
