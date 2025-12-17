@@ -1,31 +1,31 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User, } from "firebase/auth";
+import {createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,User,} from "firebase/auth";
 import { auth } from "./firebase";
 import { createUserProfile } from "./firestore";
-
+ 
 //region Input Validation Helpers
 /**
- * Validates email format
- */
+* Validates email format
+*/
 function validateEmail(email: string): void {
   if (!email || !email.includes("@")) {
     throw new Error("Invalid email address");
   }
 }
 /**
- * Validates password length
- */
+* Validates password length
+*/
 function validatePassword(password: string): void {
   if (!password || password.length < 6) {
     throw new Error("Password must be at least 6 characters");
   }
 }
 //endregion Input Validation Helpers
-
+ 
 //region Sign Up
 /**
- * Registers a new user with email & password
- * Also creates user profile in Firestore
- */
+* Registers a new user with email & password
+* Also creates user profile in Firestore
+*/
 export async function signUp(
   email: string,
   password: string,
@@ -34,7 +34,11 @@ export async function signUp(
   try {
     validateEmail(email);
     validatePassword(password);
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
     const user = userCredential.user;
     await createUserProfile(
       user.uid,
@@ -50,11 +54,11 @@ export async function signUp(
   }
 }
 //endregion Sign Up
-
+ 
 //region Login
 /**
- * Logs in an existing user
- */
+* Logs in an existing user
+*/
 export async function login(
   email: string,
   password: string
@@ -76,11 +80,11 @@ export async function login(
   }
 }
 //endregion Login
-
+ 
 //region Logout
 /**
- * Logs out the currently authenticated user
- */
+* Logs out the currently authenticated user
+*/
 export async function logout(): Promise<void> {
   try {
     await signOut(auth);
@@ -92,12 +96,12 @@ export async function logout(): Promise<void> {
   }
 }
 //endregion Logout
-
+ 
 //region Get Current User
 /**
- * Returns the currently authenticated user
- * Resolves to null if no user is logged in
- */
+* Returns the currently authenticated user
+* Resolves to null if no user is logged in
+*/
 export function getCurrentUser(): Promise<User | null> {
   return new Promise((resolve, reject) => {
     try {
