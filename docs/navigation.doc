@@ -1,0 +1,80 @@
+## Root Layout & Navigation Skeleton (NT-7)
+
+### Overview
+This user story focuses on setting up the foundational layout and navigation structure for the application. The goal is to ensure that all pages share a consistent layout, global styling, and a common navigation bar, making the application easier to maintain and scale as new features are added.
+
+---
+
+### Purpose
+The root layout acts as the backbone of the application. By defining a single layout and navigation component, we avoid duplication, ensure visual consistency, and create a solid base for future enhancements such as authentication-aware navigation and responsive menus.
+---
+
+### Implementation Details
+
+#### Root Layout (`app/layout.tsx`)
+The root layout is responsible for wrapping every page in the application.
+
+It:
+- Defines global metadata such as the application title and description
+- Imports global styles and Tailwind CSS
+- Renders the navigation bar across all routes
+- Provides a consistent structure using the `{children}` pattern
+
+This ensures that every page automatically inherits the same layout and styling without additional setup.
+
+---
+
+#### Navigation Bar (`Navbar` component)
+The Navbar component serves as the primary navigation container for the application.
+
+Current functionality includes:
+- Displaying the application name/branding
+- Providing a placeholder for authentication-based UI
+- Planning support for a responsive hamburger menu
+
+---
+
+#### Home Page (`app/page.tsx`)
+The Home page acts as the landing page and demonstrates how the layout and navigation work together.
+
+It includes:
+- A hero section introducing the platform
+- Call-to-action links for user registration and login
+- A feature highlights section
+- Responsive and visually engaging design using Tailwind CSS
+
+The page content fits seamlessly within the global layout provided by the root layout component.
+
+---
+
+### Styling and Responsiveness
+- Tailwind CSS is used for all styling
+- Global styles are defined in `globals.css`
+- Responsive utilities ensure the layout works well across devices
+- The navigation structure is designed to support mobile and desktop views
+
+---
+
+### Testing and Validation
+The layout and navigation were tested to ensure:
+- The Navbar appears consistently on all pages
+- Page content renders correctly within the root layout
+- Navigation links work as expected
+- The layout adapts properly to different screen sizes
+
+---
+
+### Acceptance Criteria Status
+
+-> Root layout with metadata: Completed
+-> Navbar component created: Completed
+-> Navigation links setup: Partially completed
+-> Responsive hamburger menu planned: Completed
+-> Global CSS / Tailwind setup: Completed
+-> Layout tested: Completed
+-> Navigation documented: Completed
+---
+
+
+### Summary
+This implementation establishes a clean and reliable layout structure for the application. It ensures consistency across pages, simplifies future development.
