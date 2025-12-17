@@ -1,5 +1,6 @@
 "use client";
 
+import AuthGuard from "@/components/layout/AuthGuard";
 import { useSearchParams } from "next/navigation";
 import { useFirestore } from "@/hooks/useFirestore";
 import MessageInput from "@/components/chat/MessageInput";
@@ -12,7 +13,8 @@ export default function ChatPage() {
   const { messages, loading, error } = useFirestore(conversationId);
 
   return (
-    <div className="p-6">
+    <AuthGuard>
+      <div className="p-6">
       <h1 className="text-xl font-semibold mb-4">Chat</h1>
 
       {!conversationId && (
@@ -41,5 +43,6 @@ export default function ChatPage() {
         <MessageInput conversationId={conversationId} />
       )}
     </div>
+    </AuthGuard>
   );
 }
