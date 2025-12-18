@@ -7,6 +7,7 @@ import MessageInput from "@/components/chat/MessageInput";
 import MessageList from "@/components/chat/MessageList";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import { useChat } from "@/hooks/useChat";
+import StartChat from "../start-chat/page";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
@@ -28,7 +29,9 @@ export default function ChatPage() {
         <h1 className="text-xl font-semibold mb-2">Chat</h1>
 
         {!conversationId && (
-          <p className="text-gray-500">No conversation yet</p>
+          <div className="flex flex-1 items-center justify-center">
+            <StartChat />
+          </div>
         )}
 
         {conversationId && (
@@ -36,8 +39,10 @@ export default function ChatPage() {
             <div className="flex-1 overflow-y-auto hide-scrollbar">
               <MessageList />
             </div>
+
             <TypingIndicator />
-            <div>
+
+            <div className="border-t pt-3">
               <MessageInput />
             </div>
           </>

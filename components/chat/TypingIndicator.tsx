@@ -13,21 +13,18 @@ function TypingIndicator() {
   const { user } = useAuth();
   const { currentConversation } = useChat();
 
-  const [typingNames, setTypingNames] = useState<string[]>([]);
-
-  if (!user || !currentConversation) return null;
-
-  // userIds who are typing (excluding current user)
   const typingUserIds = useTypingIndicator(
-    currentConversation.id,
-    user.uid
+    currentConversation?.id || "",
+    user?.uid || ""
   );
+
+  const [typingNames, setTypingNames] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
 
     async function loadTypingUsers() {
-      if (typingUserIds.length === 0) {
+      if (!typingUserIds.length) {
         setTypingNames([]);
         return;
       }
@@ -51,7 +48,9 @@ function TypingIndicator() {
     };
   }, [typingUserIds]);
 
-  if (typingNames.length === 0) return null;
+  if (!user || !currentConversation || typingNames.length === 0) {
+    return null;
+  }
 
   const text =
     typingNames.length === 1
