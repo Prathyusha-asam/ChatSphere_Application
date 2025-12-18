@@ -2,7 +2,7 @@
 "use client";
  
 import AuthGuard from "@/components/layout/AuthGuard";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import ChatHeader from "@/components/chat/ChatHeader";
 import MessageInput from "@/components/chat/MessageInput";
