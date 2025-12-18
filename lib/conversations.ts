@@ -1,11 +1,4 @@
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
 //region Create Conversation
@@ -17,8 +10,11 @@ export async function createConversation(
   currentUserId: string,
   otherUserId: string
 ): Promise<string> {
+  if (currentUserId === otherUserId) {
+    throw new Error("Cannot create conversation with yourself");
+  }
+
   try {
-    // 🔹 Check if conversation already exists
     const q = query(
       collection(db, "conversation"),
       where("participants", "array-contains", currentUserId)
@@ -33,7 +29,6 @@ export async function createConversation(
       }
     }
 
-    // 🔹 Create new conversation
     const docRef = await addDoc(collection(db, "conversation"), {
       participants: [currentUserId, otherUserId],
       type: "direct",
