@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useFirestore } from "@/hooks/useFirestore";
 import MessageInput from "@/components/chat/MessageInput";
 
+import UserPresence from "@/components/chat/UserPresence";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
@@ -16,7 +17,7 @@ export default function ChatPage() {
     <AuthGuard>
       <div className="p-6">
       <h1 className="text-xl font-semibold mb-4">Chat</h1>
-
+      <UserPresence />
       {!conversationId && (
         <div className="mt-4">
           <p className="text-gray-500 mb-3">

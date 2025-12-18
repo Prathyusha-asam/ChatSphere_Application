@@ -81,3 +81,46 @@ export async function updateUserProfile(
   }
 }
 // #endregion Update User Profile
+
+
+
+
+
+/* =====================================================
+   🔹 ADDED SECTION (DOES NOT MODIFY ORIGINAL CODE)
+   USER PRESENCE HELPERS
+===================================================== */
+
+/**
+ * Marks user as ONLINE
+ * Safe for first-time users (no document error)
+ */
+export async function setUserOnline(userId: string): Promise<void> {
+  const userRef = doc(db, "users", userId);
+
+  await setDoc(
+    userRef,
+    {
+      isOnline: true,
+      lastSeen: serverTimestamp(),
+    },
+    { merge: true } // ✅ ensures no "No document to update" error
+  );
+}
+
+/**
+ * Marks user as OFFLINE
+ * Called on logout / tab close / disconnect
+ */
+export async function setUserOffline(userId: string): Promise<void> {
+  const userRef = doc(db, "users", userId);
+
+  await setDoc(
+    userRef,
+    {
+      isOnline: false,
+      lastSeen: serverTimestamp(),
+    },
+    { merge: true } // ✅ safe update
+  );
+}

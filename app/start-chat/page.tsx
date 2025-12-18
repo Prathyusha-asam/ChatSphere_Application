@@ -9,10 +9,9 @@ export default function StartChatPage() {
   const [otherUserId, setOtherUserId] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
   const handleStartChat = async () => {
     if (!auth.currentUser || !otherUserId) return;
-
+    
     try {
       setLoading(true);
 
