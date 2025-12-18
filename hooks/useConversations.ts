@@ -23,31 +23,31 @@ export function useConversations() {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user) {
         setConversations([]);
-        setLoading(false); // ✅ inside callback (allowed)
+        setLoading(false);
         return;
       }
 
       const q = query(
-        collection(db, "conversation"),
+        collection(db, "conversations"),
         where("participants", "array-contains", user.uid),
-        orderBy("lastMessageTime", "desc")
+        orderBy("lastMessageAt", "desc") // ✅ FIXED
       );
 
       unsubscribeConversations = onSnapshot(
         q,
         (snapshot) => {
-          const data = snapshot.docs.map((doc) => ({
+          const data: Conversation[] = snapshot.docs.map((doc) => ({
             id: doc.id,
-            ...doc.data(),
-          })) as Conversation[];
+            ...(doc.data() as Omit<Conversation, "id">),
+          }));
 
           setConversations(data);
-          setLoading(false); // ✅ callback
+          setLoading(false);
         },
         (err) => {
           console.error(err);
           setError("Failed to load conversations");
-          setLoading(false); // ✅ callback
+          setLoading(false);
         }
       );
     });

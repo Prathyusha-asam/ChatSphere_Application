@@ -24,7 +24,7 @@ export default function MessageInput() {
           auth.currentUser!.uid,
           false
         );
-      }, 1000); 
+      }, 3000); 
     } else {
       setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
     }

@@ -21,7 +21,7 @@ export async function sendMessage(
       createdAt: serverTimestamp(),
     });
 
-    await updateDoc(doc(db, "conversation", conversationId), {
+    await updateDoc(doc(db, "conversations", conversationId), {
       lastMessage: text,
       lastMessageAt: serverTimestamp(),
     });

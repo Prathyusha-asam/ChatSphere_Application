@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Conversation } from "@/types/conversation.types";
+import { getUserProfile } from "@/lib/firestore";
+import { useAuth } from "@/hooks/useAuth";
 
 type Props = {
   conversations: Conversation[];
@@ -15,79 +17,138 @@ export default function ConversationList({
   conversations,
   activeConversationId,
   onSelectConversation,
+  loading = false,
+  error = null,
 }: Props) {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [nameCache, setNameCache] = useState<Record<string, string>>({});
 
-  const filteredConversations = conversations.filter((conv) =>
-    conv.participants.join(" ").toLowerCase().includes(search.toLowerCase())
-  );
+  /* ---------------- Resolve participant names ---------------- */
+  useEffect(() => {
+    async function loadNames() {
+      const ids = new Set<string>();
 
-  // 🔹 No conversations at all
-  if (conversations.length === 0) {
+      conversations.forEach((c) =>
+        c.participants.forEach((id) => {
+          if (id !== user?.uid && !nameCache[id]) ids.add(id);
+        })
+      );
+
+      const entries = await Promise.all(
+        [...ids].map(async (uid) => {
+          const profile = await getUserProfile(uid);
+          return [uid, profile?.displayName || "Unknown"] as const;
+        })
+      );
+
+      if (entries.length) {
+        setNameCache((prev) => ({
+          ...prev,
+          ...Object.fromEntries(entries),
+        }));
+      }
+    }
+
+    if (user) loadNames();
+  }, [conversations, user]);
+
+  /* ---------------- Search filter ---------------- */
+  const filtered = useMemo(() => {
+    return conversations.filter((c) => {
+      const names = c.participants
+        .filter((p) => p !== user?.uid)
+        .map((p) => nameCache[p] || "")
+        .join(" ")
+        .toLowerCase();
+
+      return names.includes(search.toLowerCase());
+    });
+  }, [conversations, search, nameCache, user]);
+
+  /* ---------------- States ---------------- */
+  if (loading) {
     return (
-      <div className="w-80 border-r h-full flex items-center justify-center text-gray-500">
-        No conversations yet
-      </div>
+      <aside className="w-80 border-r flex items-center justify-center text-gray-500">
+        Loading conversations...
+      </aside>
     );
   }
 
-  return (
-    <div className="w-80 border-r h-full flex flex-col bg-white">
+  if (error) {
+    return (
+      <aside className="w-80 border-r flex items-center justify-center text-red-500">
+        {error}
+      </aside>
+    );
+  }
 
-      {/* 🔹 Search Box */}
+  if (!conversations.length) {
+    return (
+      <aside className="w-80 border-r flex items-center justify-center text-gray-400">
+        No conversations yet
+      </aside>
+    );
+  }
+
+  /* ---------------- UI ---------------- */
+  return (
+    <aside className="w-80 border-r flex flex-col bg-white">
+      {/* Search */}
       <input
         type="text"
         placeholder="Search conversations"
-        className="m-3 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="m-3 p-2 border rounded focus:ring-2 focus:ring-purple-500"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {/* 🔹 Conversation List */}
+      {/* List */}
       <div className="flex-1 overflow-y-auto">
-
-        {/* 🔹 Empty search result */}
-        {filteredConversations.length === 0 && (
-          <div className="p-4 text-gray-400 text-center">
+        {filtered.length === 0 && (
+          <p className="text-center text-gray-400 mt-6">
             No conversations match your search
-          </div>
+          </p>
         )}
 
-        {filteredConversations.map((conv) => {
+        {filtered.map((conv) => {
           const isActive = conv.id === activeConversationId;
+
+          const otherNames = conv.participants
+            .filter((p) => p !== user?.uid)
+            .map((p) => nameCache[p] || "Loading...")
+            .join(", ");
 
           return (
             <div
               key={conv.id}
-              role="button"
-              tabIndex={0}
-              aria-selected={isActive}
               onClick={() => onSelectConversation(conv.id)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && onSelectConversation(conv.id)
-              }
-              className={`p-4 cursor-pointer border-b transition
-                hover:bg-gray-100
+              className={`p-4 cursor-pointer border-b hover:bg-gray-100 transition
                 ${isActive ? "bg-purple-100" : ""}`}
             >
-              {/* Participant names */}
-              <div className="font-medium text-gray-900 truncate">
-                {conv.participants.join(", ")}
+              {/* Names */}
+              <div className="font-medium truncate">
+                {otherNames}
               </div>
 
-              {/* Last message preview */}
+              {/* Last message */}
               <div className="text-sm text-gray-600 truncate">
-                {conv.lastMessage}
+                {conv.lastMessage || "No messages yet"}
               </div>
 
-              {/* Timestamp */}
-              <div className="text-xs text-gray-400 mt-1">
-                {new Date(conv.lastMessageTime).toLocaleTimeString()}
-              </div>
+              {/* Time */}
+              {conv.lastMessageAt && (
+                <div className="text-xs text-gray-400 mt-1">
+                  {conv.lastMessageAt.toDate().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-    </div>
+    </aside>
   );
 }

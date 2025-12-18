@@ -1,4 +1,11 @@
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 /**
@@ -14,6 +21,7 @@ export async function createConversation(
   }
 
   try {
+    // 🔍 Check if conversation already exists
     const q = query(
       collection(db, "conversations"),
       where("participants", "array-contains", currentUserId)
@@ -21,16 +29,22 @@ export async function createConversation(
 
     const snapshot = await getDocs(q);
 
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      if (data.participants.includes(otherUserId)) {
-        return doc.id;
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      if (data.participants?.includes(otherUserId)) {
+        return docSnap.id;
       }
     }
 
+    // ✅ Create new conversation WITH lastMessageAt
     const docRef = await addDoc(collection(db, "conversations"), {
       participants: [currentUserId, otherUserId],
       type: "direct",
+
+      // 🔑 REQUIRED for conversation list ordering
+      lastMessage: "",
+      lastMessageAt: serverTimestamp(),
+
       createdAt: serverTimestamp(),
     });
 
