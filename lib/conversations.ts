@@ -1,7 +1,6 @@
 import { collection, addDoc, getDocs, query, where, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
-//region Create Conversation
 /**
  * Creates a conversation between two users
  * Returns existing conversation if already present
@@ -16,7 +15,7 @@ export async function createConversation(
 
   try {
     const q = query(
-      collection(db, "conversation"),
+      collection(db, "conversations"),
       where("participants", "array-contains", currentUserId)
     );
 
@@ -29,7 +28,7 @@ export async function createConversation(
       }
     }
 
-    const docRef = await addDoc(collection(db, "conversation"), {
+    const docRef = await addDoc(collection(db, "conversations"), {
       participants: [currentUserId, otherUserId],
       type: "direct",
       createdAt: serverTimestamp(),
@@ -41,4 +40,3 @@ export async function createConversation(
     throw error;
   }
 }
-//endregion Create Conversation
