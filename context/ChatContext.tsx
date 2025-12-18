@@ -106,12 +106,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     ======================= */
 
     const startConversation = (conversation: Conversation) => {
-        setCurrentConversation((prev) =>
-            prev?.id === conversation.id ? prev : conversation
-        );
-        setMessages([]);
-        setError(null);
-    };
+  setCurrentConversation((prev) => {
+    if (prev?.id === conversation.id) {
+      return prev;
+    }
+    return conversation;
+  });
+
+  setMessages([]); // reset safely
+  setError(null);
+};
+
 
 
 
