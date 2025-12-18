@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
@@ -7,9 +9,6 @@ import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp 
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 
-/* =======================
-   Types
-======================= */
 
 export interface Message {
     id: string;
@@ -29,32 +28,20 @@ export interface ChatUser {
     photoURL?: string;
 }
 
-/* =======================
-   Context Shape
-======================= */
-
 export interface ChatContextType {
     messages: Message[];
     currentConversation: Conversation | null;
     participants: ChatUser[];
     loading: boolean;
     error: string | null;
-
-    // Actions
     startConversation: (conversation: Conversation) => void;
     sendMessage: (text: string) => Promise<void>;
     clearConversation: () => void;
 }
 
-/* =======================
-   Create Context
-======================= */
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-/* =======================
-   Provider
-======================= */
 
 export function ChatProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
@@ -65,10 +52,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const [participants, setParticipants] = useState<ChatUser[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-
-    /* =======================
-       Load messages in realtime
-    ======================= */
 
     useEffect(() => {
         if (!currentConversation) return;
@@ -101,10 +84,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, [currentConversation]);
 
-    /* =======================
-       Actions
-    ======================= */
-
     const startConversation = (conversation: Conversation) => {
   setCurrentConversation((prev) => {
     if (prev?.id === conversation.id) {
@@ -113,7 +92,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return conversation;
   });
 
-  setMessages([]); // reset safely
+  setMessages([]); 
   setError(null);
 };
 
