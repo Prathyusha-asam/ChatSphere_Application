@@ -52,3 +52,32 @@ export async function getUserProfile(
   }
 }
 //endregion Get User Profile
+
+// #region Update User Profile
+/**
+* Updates user profile fields in Firestore
+* Called from Profile Edit form
+*/
+export async function updateUserProfile(
+  userId: string,
+  data: {
+    displayName?: string;
+    photoURL?: string;
+  }
+): Promise<void> {
+  try {
+    const userRef = doc(db, "users", userId);
+    await setDoc(
+      userRef,
+      {
+        ...data,
+        lastSeen: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (error: unknown) {
+    console.error("Error updating user profile:", error);
+    throw error;
+  }
+}
+// #endregion Update User Profile
