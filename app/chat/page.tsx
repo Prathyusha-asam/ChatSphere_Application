@@ -2,47 +2,47 @@
 
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useSearchParams } from "next/navigation";
-import { useFirestore } from "@/hooks/useFirestore";
+import { useEffect } from "react";
 import MessageInput from "@/components/chat/MessageInput";
-
+import MessageList from "@/components/chat/MessageList";
+import TypingIndicator from "@/components/chat/TypingIndicator";
+import { useChat } from "@/hooks/useChat";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
-  const conversationId = searchParams.get("cid") || "";
+  const conversationId = searchParams.get("cid");
+  const { startConversation } = useChat();
 
-  const { messages, loading, error } = useFirestore(conversationId);
+  useEffect(() => {
+    if (conversationId) {
+      startConversation({
+        id: conversationId,
+        participants: [],
+      });
+    }
+  }, [conversationId]);
 
   return (
     <AuthGuard>
-      <div className="p-6">
-      <h1 className="text-xl font-semibold mb-4">Chat</h1>
+      <div className="flex flex-col h-[calc(100vh-64px)] p-4">
+        <h1 className="text-xl font-semibold mb-2">Chat</h1>
 
-      {!conversationId && (
-        <div className="mt-4">
-          <p className="text-gray-500 mb-3">
-            No conversation yet
-          </p>
+        {!conversationId && (
+          <p className="text-gray-500">No conversation yet</p>
+        )}
 
-          <a
-            href="/start-chat"
-            className="inline-block bg-purple-600 text-white px-4 py-2 rounded"
-          >
-            Start Chat
-          </a>
-        </div>
-      )}
-
-      {loading && <p>Loading messages...</p>}
-      {error && <p>{error}</p>}
-
-      {messages.map((msg) => (
-        <div key={msg.id}>{msg.text}</div>
-      ))}
-
-      {conversationId && (
-        <MessageInput conversationId={conversationId} />
-      )}
-    </div>
+        {conversationId && (
+          <>
+            <div className="flex-1 overflow-y-auto hide-scrollbar">
+              <MessageList />
+            </div>
+            <TypingIndicator />
+            <div>
+              <MessageInput />
+            </div>
+          </>
+        )}
+      </div>
     </AuthGuard>
   );
 }
