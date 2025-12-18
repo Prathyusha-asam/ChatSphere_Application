@@ -23,7 +23,6 @@ export default function StartChat() {
 
       router.push(`/chat?cid=${conversationId}`);
     } catch (err: any) {
-      console.error("🔥 StartChat error:", err);
       alert(err?.message || "Failed to start conversation");
     } finally {
       setLoading(false);

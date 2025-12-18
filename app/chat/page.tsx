@@ -28,7 +28,6 @@ export default function ChatPage() {
       <div className="flex flex-col h-[calc(100vh-64px)] p-4">
         <h1 className="text-xl font-semibold mb-2">Chat</h1>
 
-        {/* 👇 NO CONVERSATION */}
         {!conversationId && (
           <div className="flex flex-1 items-center justify-center">
             <StartChat />

@@ -13,7 +13,6 @@ export default function MessageInput() {
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
     if (text.trim()) {
-      console.log("TYPING TRUE");
       setTypingStatus(currentConversation.id, auth.currentUser.uid, true);
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
