@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -11,12 +17,18 @@ import {
 import { auth } from "@/lib/firebase";
 
 // #region Types
+/**
+ * Represents authenticated user data used across the app
+ */
 export interface AuthUser {
   uid: string;
   email: string | null;
   displayName?: string | null;
 }
 
+/**
+ * Shape of the authentication context
+ */
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
@@ -29,22 +41,30 @@ interface AuthContextType {
 // #endregion Types
 
 // #region Context
+/**
+ * Global authentication context
+ */
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // #endregion Context
 
 // #region Provider
+/**
+ * AuthProvider
+ * - Maintains Firebase authentication state
+ * - Exposes auth actions (login, register, logout)
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  //  Keep auth state in sync with Firebase
+  // 🔹 Keep auth state in sync with Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: User | null) => {
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
-          email: firebaseUser.email,  
+          email: firebaseUser.email,
           displayName: firebaseUser.displayName,
         });
       } else {
@@ -56,40 +76,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  //  Login
+  // 🔹 Login
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
       setError(null);
-
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      setError("Login failed");
+    } catch {
+      setError("Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
-  //  Register
+  // 🔹 Register
   const register = async (email: string, password: string) => {
     try {
       setLoading(true);
       setError(null);
-
       await createUserWithEmailAndPassword(auth, email, password);
-    } catch (err) {
+    } catch {
       setError("Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
-  //  Logout
+  // 🔹 Logout
   const logout = async () => {
     try {
       await signOut(auth);
       setUser(null);
-    } catch (err) {
+    } catch {
       setError("Logout failed");
     }
   };
@@ -105,11 +123,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 // #endregion Provider
 
 // #region Hook
+/**
+ * useAuth
+ * Provides access to authentication context
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth must be used within AuthProvider");
   }
 
   return context;

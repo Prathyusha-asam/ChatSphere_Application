@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-
+ 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
 import {
   setPersistence,
   browserLocalPersistence,
@@ -16,11 +15,10 @@ import { login } from "@/lib/auth";
 
 export default function LoginForm() {
   const router = useRouter();
-
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -62,9 +60,9 @@ export default function LoginForm() {
            shadow-xl overflow-hidden"
     >
       <h2 className="text-xl font-semibold mb-4">Login</h2>
-
+ 
       {error && <p className="text-red-500 mb-3">{error}</p>}
-
+ 
       <input
         type="email"
         placeholder="Email"
@@ -72,7 +70,7 @@ export default function LoginForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-
+ 
       <input
         type="password"
         placeholder="Password"
@@ -90,7 +88,7 @@ export default function LoginForm() {
         />
         Remember me
       </label>
-
+ 
       <button
         type="submit"
         disabled={loading}
@@ -113,3 +111,5 @@ export default function LoginForm() {
     </form>
   );
 }
+ 
+ 

@@ -49,11 +49,15 @@ export async function signUp(
     return user;
   } catch (error: unknown) {
     if (error instanceof Error) {
+     if (error.message.includes("auth/email-already-in-use")) {
+        throw new Error("Email already exists");
+      }
       throw new Error(error.message);
     }
     throw new Error("Sign up failed");
   }
 }
+
 //endregion Sign Up
  
 //region Login

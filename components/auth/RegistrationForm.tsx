@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth";
@@ -11,7 +11,7 @@ export default function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
+ 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,6 @@ function getPasswordStrength(password: string) {
     e.preventDefault();
     setError("");
     setSuccess("");
-
     if (!displayName.trim()) {
       setError("Name is required");
       return;
@@ -48,7 +47,7 @@ function getPasswordStrength(password: string) {
       setError("Passwords do not match");
       return;
     }
-
+ 
     try {
       setLoading(true);
 
@@ -56,7 +55,7 @@ function getPasswordStrength(password: string) {
       await signUp(email, password, displayName);
 
       setSuccess("Registration successful! Redirecting to login...");
-
+ 
       setTimeout(() => {
         router.push("/auth/login");
       }, 1500);
@@ -70,7 +69,7 @@ function getPasswordStrength(password: string) {
       setLoading(false);
     }
   };
-
+ 
   return (
     <form
       onSubmit={handleSubmit}
@@ -81,10 +80,9 @@ function getPasswordStrength(password: string) {
       <h2 className="text-2xl font-semibold mb-4 text-center">
         Create Account
       </h2>
-
+ 
       {error && <p className="text-red-500 mb-3">{error}</p>}
       {success && <p className="text-green-600 mb-3">{success}</p>}
-
       <h3>Name</h3>
       <input
         type="text"
@@ -93,7 +91,6 @@ function getPasswordStrength(password: string) {
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
       />
-
       <h3>Email</h3>
       <input
         type="email"
@@ -102,7 +99,6 @@ function getPasswordStrength(password: string) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-
       <h3>Password</h3>
       <input
         type="password"
@@ -134,7 +130,7 @@ function getPasswordStrength(password: string) {
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
       />
-
+ 
       <button
         type="submit"
         disabled={loading}
@@ -142,7 +138,7 @@ function getPasswordStrength(password: string) {
       >
         {loading ? "Registering..." : "Create Account"}
       </button>
-
+ 
       <p className="text-sm text-center mt-4">
         Already have an account?{" "}
         <span
@@ -155,3 +151,5 @@ function getPasswordStrength(password: string) {
     </form>
   );
 }
+ 
+ 
