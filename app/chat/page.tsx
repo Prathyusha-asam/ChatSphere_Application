@@ -1,15 +1,14 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import ChatHeader from "@/components/chat/ChatHeader";
-import MessageInput from "@/components/chat/MessageInput";
-import MessageList from "@/components/chat/MessageList";
-import TypingIndicator from "@/components/chat/TypingIndicator";
 import { useChat } from "@/hooks/useChat";
-import StartChat from "../start-chat/page";
+import ConversationList from "@/components/chat/ConversationList";
+import ChatHeader from "@/components/chat/ChatHeader";
+import MessageList from "@/components/chat/MessageList";
+import MessageInput from "@/components/chat/MessageInput";
+import TypingIndicator from "@/components/chat/TypingIndicator";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
@@ -27,28 +26,35 @@ export default function ChatPage() {
 
   return (
     <AuthGuard>
-      <div className="flex flex-col h-[calc(100vh-64px)]">
+      <div className="flex h-[calc(100vh-64px)]">
 
-        {!conversationId && (
-          <div className="flex flex-1 items-center justify-center">
-            <StartChat />
-          </div>
-        )}
-        {conversationId && <ChatHeader />}
+        {/* LEFT */}
+        <ConversationList />
 
-        {conversationId && (
-          <>
-            <div className="flex-1 overflow-y-auto p-4 hide-scrollbar">
-              <MessageList />
+        {/* RIGHT */}
+        <div className="flex flex-col flex-1">
+          {!conversationId && (
+            <div className="flex flex-1 items-center justify-center text-gray-400">
+              Select a conversation
             </div>
+          )}
 
-            <TypingIndicator />
+          {conversationId && (
+            <>
+              <ChatHeader />
 
-            <div className="border-t p-3">
-              <MessageInput />
-            </div>
-          </>
-        )}
+              <div className="flex-1 overflow-y-auto p-4 hide-scrollbar">
+                <MessageList />
+              </div>
+
+              <TypingIndicator />
+
+              <div className="border-t p-3">
+                <MessageInput />
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </AuthGuard>
   );

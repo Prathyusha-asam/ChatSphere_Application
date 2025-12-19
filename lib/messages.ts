@@ -1,33 +1,32 @@
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
-//region Send Message
-/**
- * Saves a message to Firestore
- */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
   text: string
-): Promise<void> {
+) {
   if (!text.trim()) return;
 
-  try {
-    await addDoc(collection(db, "messages"), {
-      conversationId,
-      senderId,
-      text,
-      isRead: false,
-      createdAt: serverTimestamp(),
-    });
+  const msg = text.trim();
 
-    await updateDoc(doc(db, "conversation", conversationId), {
-      lastMessage: text,
-      lastMessageAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Error sending message:", error);
-    throw error;
-  }
+  console.log("Updating conversation:", conversationId, msg);
+
+  await addDoc(collection(db, "messages"), {
+    conversationId,
+    senderId,
+    text: msg,
+    createdAt: serverTimestamp(),
+  });
+
+  await updateDoc(doc(db, "conversations", conversationId), {
+    lastMessage: msg,
+    lastMessageAt: serverTimestamp(),
+  });
 }
-//endregion Send Message
