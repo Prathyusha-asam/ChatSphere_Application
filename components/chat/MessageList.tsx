@@ -9,61 +9,41 @@ import { getUserProfile } from "@/lib/firestore";
 export default function MessageList() {
   const { messages, loading } = useChat();
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const userCache = useRef<Record<string, string>>({});
+  const nameCache = useRef<Record<string, string>>({});
 
-  // Auto scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load sender names (cached)
   const getSenderName = async (uid: string) => {
-    if (userCache.current[uid]) return userCache.current[uid];
-
+    if (nameCache.current[uid]) return nameCache.current[uid];
     const profile = await getUserProfile(uid);
     const name = profile?.displayName || "Unknown";
-    userCache.current[uid] = name;
+    nameCache.current[uid] = name;
     return name;
   };
 
   if (loading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-10 w-2/3 bg-gray-200 rounded animate-pulse"
-          />
-        ))}
-      </div>
-    );
+    return <p className="text-gray-400">Loading messages...</p>;
   }
 
-  if (!loading && messages.length === 0) {
+  if (!messages.length) {
     return (
       <p className="text-gray-400 text-center mt-10">
-        No messages yet. Start the conversation 👋
+        Say Hello 👋
       </p>
     );
   }
 
   return (
     <div className="space-y-3">
-      {messages.map((msg, index) => {
-        const prev = messages[index - 1];
-        const showSender =
-          !prev || prev.senderId !== msg.senderId;
-
-        return (
-          <AsyncMessage
-            key={msg.id}
-            message={msg}
-            showSender={showSender}
-            getSenderName={getSenderName}
-          />
-        );
-      })}
-
+      {messages.map((msg) => (
+        <AsyncMessage
+          key={msg.id}
+          message={msg}
+          getSenderName={getSenderName}
+        />
+      ))}
       <div ref={bottomRef} />
     </div>
   );
@@ -71,22 +51,26 @@ export default function MessageList() {
 
 function AsyncMessage({
   message,
-  showSender,
   getSenderName,
-}: any) {
+}: {
+  message: any;
+  getSenderName: (uid: string) => Promise<string>;
+}) {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    getSenderName(message.senderId).then(setName);
-  }, [message.senderId]);
+    if (message?.senderId) {
+      getSenderName(message.senderId).then(setName);
+    }
+  }, [message?.senderId]);
 
   return (
     <MessageItem
+      id={message.id}
       text={message.text}
       senderId={message.senderId}
       senderName={name}
       createdAt={message.createdAt}
-      showSender={showSender}
     />
   );
 }

@@ -1,17 +1,30 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, onSnapshot} from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export function useTypingIndicator(
-  conversationId: string,
-  currentUserId: string
+  conversationId?: string,
+  currentUserId?: string
 ) {
   const [typingUserIds, setTypingUserIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!conversationId || !currentUserId) return;
+    if (
+      !conversationId ||
+      !currentUserId ||
+      conversationId.trim().length === 0
+    ) {
+      setTypingUserIds([]);
+      return;
+    }
 
     const q = query(
       collection(db, "typingIndicators"),
@@ -19,13 +32,19 @@ export function useTypingIndicator(
       where("isTyping", "==", true)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users = snapshot.docs
-        .map((doc) => doc.data().userId)
-        .filter((uid) => uid !== currentUserId); // ❗ exclude self
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const users = snapshot.docs
+          .map((d) => d.data().userId)
+          .filter((uid) => uid && uid !== currentUserId);
 
-      setTypingUserIds(users);
-    });
+        setTypingUserIds(users);
+      },
+      () => {
+        setTypingUserIds([]);
+      }
+    );
 
     return () => unsubscribe();
   }, [conversationId, currentUserId]);

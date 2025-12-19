@@ -1,62 +1,75 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { auth } from "@/lib/firebase";
-import { setTypingStatus } from "@/lib/typing";
 import { useChat } from "@/hooks/useChat";
+import { setTypingStatus } from "@/lib/typing";
+import EmojiPicker from "emoji-picker-react";
 
 export default function MessageInput() {
-  const [text, setText] = useState("");
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { currentConversation, sendMessage, loading } = useChat();
+  const [text, setText] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false);
+
+  const emojiRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        emojiRef.current &&
+        !emojiRef.current.contains(e.target as Node) &&
+        !buttonRef.current?.contains(e.target as Node)
+      ) {
+        setShowEmoji(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
-    if (text.trim()) {
-      setTypingStatus(currentConversation.id, auth.currentUser.uid, true);
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      typingTimeoutRef.current = setTimeout(() => {
-        setTypingStatus(
-          currentConversation.id,
-          auth.currentUser!.uid,
-          false
-        );
-      }, 1000); 
-    } else {
-      setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
-    }
-
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
+    setTypingStatus(currentConversation.id, auth.currentUser.uid, !!text);
   }, [text, currentConversation]);
 
   const handleSend = async () => {
     if (!text.trim() || !currentConversation) return;
-
     await sendMessage(text);
     setText("");
-
-    setTypingStatus(
-      currentConversation.id,
-      auth.currentUser!.uid,
-      false
-    );
+    setShowEmoji(false);
   };
 
-  if (!currentConversation) return null;
-
   return (
-    <div className="flex gap-2 mt-2">
+    <div className="relative flex items-center gap-2">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setShowEmoji((p) => !p)}
+        className="text-xl"
+      >
+        🙂
+      </button>
+
+      {showEmoji && (
+        <div
+          ref={emojiRef}
+          className="absolute bottom-full left-0 mb-2 z-50"
+        >
+          <EmojiPicker
+            onEmojiClick={(e) =>
+              setText((prev) => prev + e.emoji)
+            }
+          />
+        </div>
+      )}
+
       <input
         type="text"
-        placeholder="Type a message..."
         className="flex-1 border p-2 rounded"
+        placeholder="Type a message..."
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
@@ -66,7 +79,7 @@ export default function MessageInput() {
         disabled={loading}
         className="bg-purple-600 text-white px-4 rounded"
       >
-        {loading ? "Sending..." : "Send"}
+        Send
       </button>
     </div>
   );
