@@ -1,33 +1,42 @@
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
-//region Send Message
-/**
- * Saves a message to Firestore
- */
-export async function sendMessage(
+export async function deleteMessage(
   conversationId: string,
-  senderId: string,
-  text: string
-): Promise<void> {
-  if (!text.trim()) return;
+  messageId: string
+) {
+  await deleteDoc(doc(db, "messages", messageId));
 
-  try {
-    await addDoc(collection(db, "messages"), {
-      conversationId,
-      senderId,
-      text,
-      isRead: false,
-      createdAt: serverTimestamp(),
-    });
+  const q = query(
+    collection(db, "messages"),
+    where("conversationId", "==", conversationId),
+    orderBy("createdAt", "desc"),
+    limit(1)
+  );
 
-    await updateDoc(doc(db, "conversation", conversationId), {
-      lastMessage: text,
-      lastMessageAt: serverTimestamp(),
+  const snap = await getDocs(q);
+  const convoRef = doc(db, "conversations", conversationId);
+
+  if (snap.empty) {
+    await updateDoc(convoRef, {
+      lastMessage: "",
+      lastMessageAt: null,
     });
-  } catch (error) {
-    console.error("Error sending message:", error);
-    throw error;
+  } else {
+    const last = snap.docs[0].data();
+    await updateDoc(convoRef, {
+      lastMessage: last.text,
+      lastMessageAt: last.createdAt,
+    });
   }
 }
-//endregion Send Message
