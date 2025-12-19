@@ -1,32 +1,42 @@
 import {
-  addDoc,
   collection,
+  deleteDoc,
   doc,
-  serverTimestamp,
+  getDocs,
+  limit,
+  orderBy,
+  query,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
-export async function sendMessage(
+export async function deleteMessage(
   conversationId: string,
-  senderId: string,
-  text: string
+  messageId: string
 ) {
-  if (!text.trim()) return;
+  await deleteDoc(doc(db, "messages", messageId));
 
-  const msg = text.trim();
+  const q = query(
+    collection(db, "messages"),
+    where("conversationId", "==", conversationId),
+    orderBy("createdAt", "desc"),
+    limit(1)
+  );
 
-  console.log("Updating conversation:", conversationId, msg);
+  const snap = await getDocs(q);
+  const convoRef = doc(db, "conversations", conversationId);
 
-  await addDoc(collection(db, "messages"), {
-    conversationId,
-    senderId,
-    text: msg,
-    createdAt: serverTimestamp(),
-  });
-
-  await updateDoc(doc(db, "conversations", conversationId), {
-    lastMessage: msg,
-    lastMessageAt: serverTimestamp(),
-  });
+  if (snap.empty) {
+    await updateDoc(convoRef, {
+      lastMessage: "",
+      lastMessageAt: null,
+    });
+  } else {
+    const last = snap.docs[0].data();
+    await updateDoc(convoRef, {
+      lastMessage: last.text,
+      lastMessageAt: last.createdAt,
+    });
+  }
 }

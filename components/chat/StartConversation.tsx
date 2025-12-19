@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { createConversation } from "@/lib/conversations";
 import { useRouter } from "next/navigation";
 
-/* ---------- Types ---------- */
 interface User {
   userId: string;
   displayName?: string;
@@ -21,55 +20,43 @@ export default function StartConversation({
 }) {
   const { user } = useAuth();
   const router = useRouter();
-
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
 
-  /* ---------- Load Users ---------- */
   useEffect(() => {
     async function loadUsers() {
-      const snapshot = await getDocs(collection(db, "users"));
-
-      const list = snapshot.docs
-        .map((doc) => doc.data() as User)
-        .filter((u) => u.userId !== user?.uid);
-
+      const snap = await getDocs(collection(db, "users"));
+      const list: User[] = [];
+      snap.forEach((doc) => {
+        const data = doc.data() as User;
+        if (data.userId && data.userId !== user?.uid) {
+          list.push(data);
+        }
+      });
       setUsers(list);
     }
-
     loadUsers();
   }, [user]);
 
-  /* ---------- Safe Search ---------- */
   const filtered = users.filter((u) =>
     (u.displayName || "")
       .toLowerCase()
       .includes(search.toLowerCase())
   );
 
-  /* ---------- Start Chat ---------- */
   const startChat = async (otherUserId: string) => {
     if (!user) return;
-
-    const conversationId = await createConversation(
-      user.uid,
-      otherUserId
-    );
-
+    const cid = await createConversation(user.uid, otherUserId);
     onClose();
-    router.push(`/chat?cid=${conversationId}`);
+    router.push(`/chat?cid=${cid}`);
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white w-96 rounded-lg shadow-lg p-4">
-        <h2 className="font-semibold text-lg mb-3">
-          New Chat
-        </h2>
-
         <input
-          placeholder="Search users"
           className="w-full border p-2 rounded mb-3"
+          placeholder="Search users"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -77,38 +64,28 @@ export default function StartConversation({
         <div className="max-h-64 overflow-y-auto">
           {filtered.map((u) => (
             <button
-              key={u.userId}
+              key={`user-${u.userId}`}
               onClick={() => startChat(u.userId)}
               className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded"
             >
               {u.photoURL ? (
                 <img
                   src={u.photoURL}
-                  className="w-10 h-10 rounded-full object-cover"
-                  alt=""
+                  className="w-10 h-10 rounded-full"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-semibold">
+                <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center">
                   {(u.displayName || "U")[0]}
                 </div>
               )}
-
-              <span className="font-medium">
-                {u.displayName || "Unnamed User"}
-              </span>
+              <span>{u.displayName || "Unnamed User"}</span>
             </button>
           ))}
-
-          {filtered.length === 0 && (
-            <p className="text-sm text-gray-500 text-center mt-4">
-              No users found
-            </p>
-          )}
         </div>
 
         <button
           onClick={onClose}
-          className="mt-4 w-full border py-2 rounded"
+          className="mt-3 w-full border py-2 rounded"
         >
           Cancel
         </button>
