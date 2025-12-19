@@ -1,8 +1,4 @@
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 //region Send Message
@@ -23,6 +19,11 @@ export async function sendMessage(
       text,
       isRead: false,
       createdAt: serverTimestamp(),
+    });
+
+    await updateDoc(doc(db, "conversation", conversationId), {
+      lastMessage: text,
+      lastMessageAt: serverTimestamp(),
     });
   } catch (error) {
     console.error("Error sending message:", error);

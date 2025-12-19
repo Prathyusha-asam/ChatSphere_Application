@@ -1,49 +1,55 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useSearchParams } from "next/navigation";
-import { useFirestore } from "@/hooks/useFirestore";
+import { useEffect } from "react";
+import ChatHeader from "@/components/chat/ChatHeader";
 import MessageInput from "@/components/chat/MessageInput";
-
-import UserPresence from "@/components/chat/UserPresence";
+import MessageList from "@/components/chat/MessageList";
+import TypingIndicator from "@/components/chat/TypingIndicator";
+import { useChat } from "@/hooks/useChat";
+import StartChat from "../start-chat/page";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
-  const conversationId = searchParams.get("cid") || "";
+  const conversationId = searchParams.get("cid");
+  const { startConversation } = useChat();
 
-  const { messages, loading, error } = useFirestore(conversationId);
+  useEffect(() => {
+    if (conversationId) {
+      startConversation({
+        id: conversationId,
+        participants: [],
+      });
+    }
+  }, [conversationId]);
 
   return (
     <AuthGuard>
-      <div className="p-6">
-      <h1 className="text-xl font-semibold mb-4">Chat</h1>
-      <UserPresence />
-      {!conversationId && (
-        <div className="mt-4">
-          <p className="text-gray-500 mb-3">
-            No conversation yet
-          </p>
+      <div className="flex flex-col h-[calc(100vh-64px)]">
 
-          <a
-            href="/start-chat"
-            className="inline-block bg-purple-600 text-white px-4 py-2 rounded"
-          >
-            Start Chat
-          </a>
-        </div>
-      )}
+        {!conversationId && (
+          <div className="flex flex-1 items-center justify-center">
+            <StartChat />
+          </div>
+        )}
+        {conversationId && <ChatHeader />}
 
-      {loading && <p>Loading messages...</p>}
-      {error && <p>{error}</p>}
+        {conversationId && (
+          <>
+            <div className="flex-1 overflow-y-auto p-4 hide-scrollbar">
+              <MessageList />
+            </div>
 
-      {messages.map((msg) => (
-        <div key={msg.id}>{msg.text}</div>
-      ))}
+            <TypingIndicator />
 
-      {conversationId && (
-        <MessageInput conversationId={conversationId} />
-      )}
-    </div>
+            <div className="border-t p-3">
+              <MessageInput />
+            </div>
+          </>
+        )}
+      </div>
     </AuthGuard>
   );
 }

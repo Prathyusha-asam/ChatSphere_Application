@@ -1,0 +1,49 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+"use client";
+
+import { useAuth } from "@/hooks/useAuth";
+import { useChat } from "@/hooks/useChat";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { getUserProfile } from "@/lib/firestore";
+import { useEffect, useState } from "react";
+
+export default function HeaderTypingIndicator() {
+  const { user } = useAuth();
+  const { currentConversation } = useChat();
+
+  const typingUserIds = useTypingIndicator(
+    currentConversation?.id || "",
+    user?.uid || ""
+  );
+
+  const [names, setNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!typingUserIds.length) {
+      setNames([]);
+      return;
+    }
+
+    const loadNames = async () => {
+      const resolved = await Promise.all(
+        typingUserIds.map(async (uid) => {
+          const profile = await getUserProfile(uid);
+          return profile?.displayName || "Someone";
+        })
+      );
+      setNames(resolved);
+    };
+
+    loadNames();
+  }, [typingUserIds]);
+
+  if (!names.length) return null;
+
+  return (
+    <div className="px-4 pb-2 text-xs italic text-gray-500">
+      {names.length === 1
+        ? `${names[0]} is typing...`
+        : `${names.join(", ")} are typing...`}
+    </div>
+  );
+}

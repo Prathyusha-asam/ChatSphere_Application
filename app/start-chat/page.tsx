@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { createConversation } from "@/lib/conversations";
 
-export default function StartChatPage() {
+export default function StartChat() {
   const [otherUserId, setOtherUserId] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -21,18 +21,18 @@ export default function StartChatPage() {
       );
 
       router.push(`/chat?cid=${conversationId}`);
-    } catch {
-      alert("Failed to start conversation");
+    } catch (err: any) {
+      alert(err?.message || "Failed to start conversation");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto">
-      <h1 className="text-xl font-semibold mb-4">
+    <div className="max-w-md w-full">
+      <h2 className="text-lg font-semibold mb-4">
         Start New Chat
-      </h1>
+      </h2>
 
       <input
         type="text"
