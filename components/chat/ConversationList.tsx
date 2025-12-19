@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getUserProfile } from "@/lib/firestore";
 import StartConversation from "./StartConversation";
+import ConversationSkeleton from "@/components/skeletons/ConversationsSkeleton";
+
 
 interface ConversationItem {
     id: string;
@@ -34,7 +36,7 @@ export default function ConversationList() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const activeCid = searchParams.get("cid");
-
+     const [loading, setLoading] = useState(true); // ✅ HERE
     const [conversations, setConversations] = useState<
         ConversationItem[]
     >([]);
@@ -44,25 +46,29 @@ export default function ConversationList() {
     const [search, setSearch] = useState("");
     const [open, setOpen] = useState(false);
 
-    useEffect(() => {
-        if (!user) return;
+   useEffect(() => {
+    if (!user) return;
 
-        const q = query(
-            collection(db, "conversations"),
-            where("participants", "array-contains", user.uid),
-            orderBy("lastMessageAt", "desc")
-        );
+    setLoading(true); // ✅ ADD
 
-        const unsubscribe = onSnapshot(q, (snap) => {
-            const list = snap.docs
-                .map(d => ({ id: d.id, ...(d.data() as any) }))
-                .filter(c => c.lastMessage && c.lastMessage.trim() !== "");
-            setConversations(list);
+    const q = query(
+        collection(db, "conversations"),
+        where("participants", "array-contains", user.uid),
+        orderBy("lastMessageAt", "desc")
+    );
 
-        });
+    const unsubscribe = onSnapshot(q, (snap) => {
+        const list = snap.docs
+            .map(d => ({ id: d.id, ...(d.data() as any) }))
+            .filter(c => c.lastMessage && c.lastMessage.trim() !== "");
 
-        return () => unsubscribe();
-    }, [user]);
+        setConversations(list);
+        setLoading(false); // ✅ ADD
+    });
+
+    return () => unsubscribe();
+}, [user]);
+
 
     useEffect(() => {
         conversations.forEach(async (c) => {
@@ -84,7 +90,7 @@ export default function ConversationList() {
         });
     }, [conversations]);
 
-    if (!conversations.length) {
+    if (!loading && !conversations.length) {
         return (
             <div className="flex flex-col flex-1 items-center justify-center">
                 <p className="text-gray-400 mb-4">
@@ -113,7 +119,14 @@ export default function ConversationList() {
             />
 
             <div className="flex-1 overflow-y-auto">
-                {conversations.map((c) => {
+    {loading &&
+        Array.from({ length: 5 }).map((_, i) => (
+            <ConversationSkeleton key={i} />
+        ))}
+
+    {!loading &&
+        conversations.map((c) => {
+
                     const otherId =
                         c.participants.find((p) => p !== user?.uid) ||
                         "";

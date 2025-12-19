@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import MessageSkeleton from "@/components/skeletons/MessageSkeleton";
 
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@/hooks/useChat";
@@ -24,8 +25,15 @@ export default function MessageList() {
   };
 
   if (loading) {
-    return <p className="text-gray-400">Loading messages...</p>;
-  }
+  return (
+    <div className="p-4 space-y-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <MessageSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
 
   if (!messages.length) {
     return (
