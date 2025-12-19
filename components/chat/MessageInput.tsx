@@ -1,56 +1,58 @@
 "use client";
 
-import { useState } from "react";
-import { sendMessage } from "@/lib/messages";
+import { useState, useEffect, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { setTypingStatus } from "@/lib/typing";
-import { useEffect } from "react";
+import { useChat } from "@/hooks/useChat";
 
-interface Props {
-  conversationId: string;
-}
-
-export default function MessageInput({ conversationId }: Props) {
+export default function MessageInput() {
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { currentConversation, sendMessage, loading } = useChat();
 
   useEffect(() => {
-  if (!auth.currentUser) return;
+    if (!auth.currentUser || !currentConversation) return;
+    if (text.trim()) {
+      setTypingStatus(currentConversation.id, auth.currentUser.uid, true);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
 
-  if (text.trim()) {
-    setTypingStatus(conversationId, auth.currentUser.uid, true);
-  } else {
-    setTypingStatus(conversationId, auth.currentUser.uid, false);
-  }
-
-  return () => {
-    if (auth.currentUser) {
-      setTypingStatus(conversationId, auth.currentUser.uid, false);
+      typingTimeoutRef.current = setTimeout(() => {
+        setTypingStatus(
+          currentConversation.id,
+          auth.currentUser!.uid,
+          false
+        );
+      }, 1000); 
+    } else {
+      setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
     }
-  };
-}, [text, conversationId]);
 
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [text, currentConversation]);
 
   const handleSend = async () => {
-    if (!auth.currentUser) return;
+    if (!text.trim() || !currentConversation) return;
 
-    try {
-      setLoading(true);
-      await sendMessage(
-        conversationId,
-        auth.currentUser.uid,
-        text
-      );
-      setText("");
-    } catch {
-      alert("Failed to send message");
-    } finally {
-      setLoading(false);
-    }
+    await sendMessage(text);
+    setText("");
+
+    setTypingStatus(
+      currentConversation.id,
+      auth.currentUser!.uid,
+      false
+    );
   };
 
+  if (!currentConversation) return null;
+
   return (
-    <div className="flex gap-2 mt-4">
+    <div className="flex gap-2 mt-2">
       <input
         type="text"
         placeholder="Type a message..."

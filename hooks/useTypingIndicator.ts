@@ -1,36 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, query, where, onSnapshot} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-/**
- * Listens to typing indicators in a conversation
- */
 export function useTypingIndicator(
   conversationId: string,
   currentUserId: string
 ) {
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [typingUserIds, setTypingUserIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !currentUserId) return;
 
     const q = query(
       collection(db, "typingIndicators"),
       where("conversationId", "==", conversationId),
-      where("userId", "!=", currentUserId)
+      where("isTyping", "==", true)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users = snapshot.docs.map(
-        (doc) => doc.data().userId as string
-      );
-      setTypingUsers(users);
+      const users = snapshot.docs
+        .map((doc) => doc.data().userId)
+        .filter((uid) => uid !== currentUserId); // ❗ exclude self
+
+      setTypingUserIds(users);
     });
 
     return () => unsubscribe();
   }, [conversationId, currentUserId]);
 
-  return typingUsers;
+  return typingUserIds;
 }

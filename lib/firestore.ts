@@ -1,4 +1,10 @@
-import { doc, setDoc, getDoc, serverTimestamp, DocumentData } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+  DocumentData,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 //region Create User Profile
@@ -55,23 +61,26 @@ export async function getUserProfile(
 
 // #region Update User Profile
 /**
-* Updates user profile fields in Firestore
-* Called from Profile Edit form
-*/
+ * Updates user profile fields in Firestore
+ * Called from Profile Edit form
+ */
 export async function updateUserProfile(
   userId: string,
   data: {
     displayName?: string;
     photoURL?: string;
+    isOnline?: boolean;
+    lastSeen?: Date;
   }
 ): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
+
     await setDoc(
       userRef,
       {
         ...data,
-        lastSeen: serverTimestamp(),
+        ...(data.lastSeen ? {} : { lastSeen: serverTimestamp() }),
       },
       { merge: true }
     );

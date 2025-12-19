@@ -15,6 +15,7 @@ import {
   User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { updateUserProfile } from "@/lib/firestore";
 
 // #region Types
 /**
@@ -58,25 +59,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔹 Keep auth state in sync with Firebase
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: User | null) => {
-      if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        });
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+    let detachUnload: (() => void) | null = null;
 
-    return () => unsubscribe();
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (firebaseUser: User | null) => {
+        if (firebaseUser) {
+          const authUser: AuthUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+          };
+
+          setUser(authUser);
+
+          await updateUserProfile(firebaseUser.uid, {
+            isOnline: true,
+          });
+
+          const handleOffline = async () => {
+            await updateUserProfile(firebaseUser.uid, {
+              isOnline: false,
+              lastSeen: new Date(),
+            });
+          };
+
+          window.addEventListener("beforeunload", handleOffline);
+
+          detachUnload = () => {
+            window.removeEventListener("beforeunload", handleOffline);
+          };
+        } else {
+          setUser(null);
+        }
+
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      if (detachUnload) detachUnload();
+      unsubscribe();
+    };
   }, []);
 
-  // 🔹 Login
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -89,7 +116,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 🔹 Register
   const register = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -102,9 +128,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 🔹 Logout
   const logout = async () => {
     try {
+      if (user) {
+        await updateUserProfile(user.uid, {
+          isOnline: false,
+          lastSeen: new Date(),
+        });
+      }
       await signOut(auth);
       setUser(null);
     } catch {
