@@ -1,18 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 "use client";
  
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+ 
 import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
 } from "firebase/auth";
-
-
+ 
+ 
 import { auth } from "@/lib/firebase";
 import { login } from "@/lib/auth";
-
+ import { useAuth } from "@/context/AuthContext";
 export default function LoginForm() {
   const router = useRouter();
   const { login } = useAuth();
@@ -21,24 +22,18 @@ export default function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-
  const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError("");
-
   try {
     setLoading(true);
-
     await setPersistence(
       auth,
       rememberMe
         ? browserLocalPersistence
         : browserSessionPersistence
     );
-
     await login(email, password);
-
     router.push("/chat");
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -50,8 +45,6 @@ export default function LoginForm() {
     setLoading(false);
   }
 };
-
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -78,8 +71,7 @@ export default function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      
-
+ 
       <label className="flex items-center gap-2 mb-4">
         <input
           type="checkbox"
@@ -96,6 +88,18 @@ export default function LoginForm() {
       >
         {loading ? "Logging in..." : "Login"}
       </button>
+
+    <div className="text-right mb-4">
+  <button
+    type="button"
+    onClick={() => router.push("/auth/forgot-password")}
+    className="text-sm text-purple-600 hover:underline"
+  >
+    Forgot password?
+  </button>
+</div>
+
+
       <div className="mt-4 text-center">
   <p className="text-sm text-center mt-4">
     Don&apos;t have an account?{" "}

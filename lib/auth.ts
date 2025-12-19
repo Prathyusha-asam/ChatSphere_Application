@@ -1,7 +1,8 @@
 import {createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,User, fetchSignInMethodsForEmail,} from "firebase/auth";
 import { auth } from "./firebase";
 import { createUserProfile } from "./firestore";
- 
+ import { sendPasswordResetEmail } from "firebase/auth";
+
 //region Input Validation Helpers
 /**
 * Validates email format
@@ -21,6 +22,27 @@ function validatePassword(password: string): void {
 }
 //endregion Input Validation Helpers
  
+export async function forgotPassword(email: string): Promise<void> {
+  try {
+    if (!email || !email.includes("@")) {
+      throw new Error("Please enter a valid email address");
+    }
+
+    await sendPasswordResetEmail(auth, email, {
+      // optional – redirect after reset
+      url: `${window.location.origin}/auth/login`,
+      handleCodeInApp: false,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message.includes("auth/user-not-found")) {
+        throw new Error("No account found with this email");
+      }
+      throw new Error(error.message);
+    }
+    throw new Error("Failed to send reset email");
+  }
+}
 //region Sign Up
 /**
 * Registers a new user with email & password
