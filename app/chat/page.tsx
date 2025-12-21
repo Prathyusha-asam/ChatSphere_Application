@@ -11,7 +11,6 @@ import ChatHeader from "@/components/chat/ChatHeader";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageList from "@/components/chat/MessageList";
 import TypingIndicator from "@/components/chat/TypingIndicator";
-import StartChat from "../start-chat/page";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
