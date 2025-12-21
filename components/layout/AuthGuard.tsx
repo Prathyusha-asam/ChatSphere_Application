@@ -3,6 +3,7 @@
 import { useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function AuthGuard({
   children,
@@ -20,8 +21,13 @@ export default function AuthGuard({
   }, [user, loading, router]);
 
   if (loading) {
-    return <p className="p-6 text-center">Checking authentication...</p>;
-  }
+  return (
+    <div className="h-screen flex items-center justify-center">
+      <LoadingSpinner size={40} />
+    </div>
+  );
+}
+
   if (!user) {
     return null;
   }

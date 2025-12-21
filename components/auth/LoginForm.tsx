@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 "use client";
  
 import { useState } from "react";
@@ -88,6 +88,18 @@ export default function LoginForm() {
       >
         {loading ? "Logging in..." : "Login"}
       </button>
+
+    <div className="text-right mb-4">
+  <button
+    type="button"
+    onClick={() => router.push("/auth/forgot-password")}
+    className="text-sm text-purple-600 hover:underline"
+  >
+    Forgot password?
+  </button>
+</div>
+
+
       <div className="mt-4 text-center">
   <p className="text-sm text-center mt-4">
     Don&apos;t have an account?{" "}

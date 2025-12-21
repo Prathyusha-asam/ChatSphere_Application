@@ -5,6 +5,7 @@ import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { setTypingStatus } from "@/lib/typing";
 import EmojiPicker from "emoji-picker-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function MessageInput() {
   const { currentConversation, sendMessage, loading } = useChat();
@@ -75,12 +76,13 @@ export default function MessageInput() {
       />
 
       <button
-        onClick={handleSend}
-        disabled={loading}
-        className="bg-purple-600 text-white px-4 rounded"
-      >
-        Send
-      </button>
+  onClick={handleSend}
+  disabled={loading}
+  className="bg-purple-600 text-white px-4 py-2 rounded flex items-center justify-center min-w-[80px]"
+>
+  {loading ? <LoadingSpinner size={16} /> : "Send"}
+</button>
+
     </div>
   );
 }
