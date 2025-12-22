@@ -22,33 +22,75 @@ export default function ChatHeader() {
   const conversationId = searchParams.get("cid");
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!conversationId || !user) return;
 
     const convoRef = doc(db, "conversations", conversationId);
 
-    const unsubscribeConversation = onSnapshot(convoRef, (snap) => {
-      if (!snap.exists()) return;
-
-      const participants: string[] = snap.data().participants || [];
-      const otherUserId = participants.find((uid) => uid !== user.uid);
-      if (!otherUserId) return;
-
-      const userRef = doc(db, "users", otherUserId);
-
-      const unsubscribeUser = onSnapshot(userRef, (userSnap) => {
-        if (userSnap.exists()) {
-          setProfile(userSnap.data() as UserProfile);
+    const unsubscribeConversation = onSnapshot(
+      convoRef,
+      (snap) => {
+        if (!snap.exists()) {
+          setError("Conversation not found");
+          setLoading(false);
+          return;
         }
-      });
 
-      return () => unsubscribeUser();
-    });
+        const participants: string[] = snap.data().participants || [];
+        const otherUserId = participants.find((uid) => uid !== user.uid);
+        if (!otherUserId) {
+          setError("User not found");
+          setLoading(false);
+          return;
+        }
+
+        const userRef = doc(db, "users", otherUserId);
+
+        const unsubscribeUser = onSnapshot(
+          userRef,
+          (userSnap) => {
+            if (userSnap.exists()) {
+              setProfile(userSnap.data() as UserProfile);
+            }
+            setLoading(false);
+          },
+          (err) => {
+            console.error("User snapshot error:", err);
+            setError("Failed to load user info");
+            setLoading(false);
+          }
+        );
+
+        return () => unsubscribeUser();
+      },
+      (err) => {
+        console.error("Conversation snapshot error:", err);
+        setError("Failed to load conversation");
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribeConversation();
   }, [conversationId, user]);
 
+  if (loading) {
+    return (
+      <div className="px-6 py-4 text-sm text-gray-500">
+        Loading chat…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="px-6 py-4 text-sm text-red-600">
+        {error}
+      </div>
+    );
+  }
   if (!profile) return null;
 
   return (

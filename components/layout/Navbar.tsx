@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import ConfirmLogoutModal from "@/components/common/ConfirmLogoutModal";
 
 /* ---------- Types ---------- */
 interface UserProfile {
@@ -17,11 +16,8 @@ interface UserProfile {
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
-
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
   const popoverRef = useRef<HTMLDivElement>(null);
 
   /* ---------- Fetch Profile (real-time) ---------- */
@@ -161,7 +157,10 @@ export default function Navbar() {
                 </Link>
 
                 <button
-                  onClick={handleLogoutClick}
+                  onClick={async () => {
+                    await logout();
+                    setOpen(false);
+                  }}
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition"
                 >
                   <Image

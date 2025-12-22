@@ -19,11 +19,9 @@ export default function MessageInput() {
     clearComposerState,
   } = useChat();
 
-  const [error, setError] = useState(""); // ✅ added
-
-  /* ✅ Initialize state ONCE per edit session */
   const [text, setText] = useState(editMessage?.text ?? "");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [error, setError] = useState("");
 
   const emojiRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -44,7 +42,6 @@ export default function MessageInput() {
 
     const trimmedText = text.trim();
 
-    // ✅ Message validation
     if (!trimmedText) {
       setError("Message cannot be empty");
       return;
@@ -67,7 +64,6 @@ export default function MessageInput() {
         false
       );
     } catch {
-      // ✅ Error handling
       setError("Failed to send message. Please try again.");
     }
   };
@@ -77,7 +73,6 @@ export default function MessageInput() {
   return (
     <div
       className="relative"
-      /* 🔑 THIS IS THE MAGIC */
       key={editMessage?.id ?? "new-message"}
     >
       {(replyTo || editMessage) && (
@@ -161,6 +156,12 @@ export default function MessageInput() {
         >
           {loading ? <LoadingSpinner size={16} /> : "Send"}
         </button>
+        {error && (
+          <p className="mt-2 text-xs text-red-600 text-center">
+            {error}
+          </p>
+        )}
+
       </div>
 
       {/* ✅ Error message + character count */}
