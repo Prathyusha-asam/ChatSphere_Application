@@ -22,6 +22,9 @@ export interface ConversationDoc {
   lastMessage?: string;
   lastMessageAt?: Timestamp;
   createdAt: Timestamp;
+  mutedFor?: string[];
+  favoritesFor?: string[];
+  lastReadAt?: Record<string, Timestamp>;
 }
 
 /**
