@@ -111,6 +111,8 @@ const MemoAsyncMessage = React.memo(function AsyncMessage({
       createdAt={message.createdAt}
       editedAt={message.editedAt}
       replyTo={message.replyTo}
+      isRead={message.isRead}
+      deliveredAt={message.deliveredAt}
     />
   );
 });

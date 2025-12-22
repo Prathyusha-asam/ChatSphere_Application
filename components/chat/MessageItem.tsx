@@ -26,6 +26,10 @@ interface MessageItemProps {
     text: string;
     senderId?: string;
   };
+
+  // ✅ ADD (non-breaking)
+  isRead?: boolean;
+  deliveredAt?: any;
 }
 
 function MessageItem({
@@ -36,6 +40,8 @@ function MessageItem({
   createdAt,
   editedAt,
   replyTo,
+  isRead,
+  deliveredAt,
 }: MessageItemProps) {
   const isMine = senderId === auth.currentUser?.uid;
 
@@ -148,6 +154,16 @@ function MessageItem({
               hour: "2-digit",
               minute: "2-digit",
             })}
+            {/* ✅ Seen / Delivered */}
+            {isMine && (
+              <span className="ml-1">
+                {isRead
+                  ? "👁 Seen"
+                  : deliveredAt
+                  ? "✓ Delivered"
+                  : "Sending…"}
+              </span>
+            )}
           </span>
         )}
       </div>
@@ -204,6 +220,4 @@ function MenuItem({
     </button>
   );
 }
-
-/* ---------- NT-29: memoized export ---------- */
 export default React.memo(MessageItem);

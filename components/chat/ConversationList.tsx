@@ -47,6 +47,7 @@ export default function ConversationList() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
 
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   /* ---------- Fetch conversations ---------- */
   useEffect(() => {
     if (!user) return;
@@ -82,6 +83,37 @@ export default function ConversationList() {
 
     return () => unsubscribe();
   }, [user]);
+  /* ================== ✅ UNREAD COUNT (NO INDEX VERSION) ================== */
+useEffect(() => {
+  if (!user || !conversations.length) return;
+
+  const unsubscribers: (() => void)[] = [];
+
+  conversations.forEach((conv) => {
+    const q = query(
+      collection(db, "messages"),
+      where("conversationId", "==", conv.id),
+      where("isRead", "==", false)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const unread = snap.docs.filter(
+        (d) => d.data().senderId !== user.uid
+      ).length;
+
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [conv.id]: unread,
+      }));
+    });
+
+    unsubscribers.push(unsub);
+  });
+
+  return () => {
+    unsubscribers.forEach((u) => u());
+  };
+}, [conversations, user]);
 
   /* ---------- Fetch user profiles ---------- */
   useEffect(() => {
@@ -223,6 +255,7 @@ export default function ConversationList() {
           const otherId =
             c.participants.find((p) => p !== user?.uid) || "";
           const profile = profiles[otherId];
+          const unread = unreadCounts[c.id] || 0;
 
           return (
             <div
@@ -252,9 +285,25 @@ export default function ConversationList() {
                   <span className="text-sm font-medium text-gray-900 truncate">
                     {profile?.displayName || "Loading"}
                   </span>
-                  <span className="text-xs text-gray-400 ml-2">
-                    {formatDate(c.lastMessageAt)}
-                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">
+                      {formatDate(c.lastMessageAt)}
+                    </span>
+
+                    {/* ✅ UNREAD BADGE */}
+                    {unread > 0 && (
+                      <span
+                        className="min-w-[20px] h-5 px-1
+                                   flex items-center justify-center
+                                   rounded-full
+                                   bg-gray-900 text-white
+                                   text-xs font-medium"
+                      >
+                        {unread}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="text-xs text-gray-500 truncate">

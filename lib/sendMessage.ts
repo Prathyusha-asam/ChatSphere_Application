@@ -1,44 +1,45 @@
 import {
   addDoc,
   collection,
-  doc,
   serverTimestamp,
   updateDoc,
+  doc,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 
 /**
- * Sends a message and updates the conversation metadata
- * IMPORTANT: Conversation update is REQUIRED for sidebar performance
+ * Sends a new message to Firestore
  */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
-  text: string
-): Promise<void> {
-  try {
-    // ===============================
-    // 1. Save message
-    // ===============================
-    await addDoc(collection(db, "messages"), {
-      conversationId,
-      senderId,
-      text,
-      createdAt: serverTimestamp(),
-      isRead: false,
-    });
-
-    // ===============================
-    // 2. Update conversation (CRITICAL)
-    // ===============================
-    const conversationRef = doc(db, "conversations", conversationId);
-
-    await updateDoc(conversationRef, {
-      lastMessage: text,
-      lastMessageAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Error sending message:", error);
-    throw error;
+  text: string,
+  replyTo: {
+    id: string;
+    text: string;
+    senderId: string;
+  } | null
+) {
+  if (!auth.currentUser) {
+    throw new Error("Not authenticated");
   }
+
+  // 📩 Create message
+  const ref = await addDoc(collection(db, "messages"), {
+    conversationId,
+    senderId,
+    text,
+    replyTo: replyTo || null,    
+    isRead: false,                
+    deliveredAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+  });
+
+  // 🧾 Update conversation preview
+  await updateDoc(doc(db, "conversations", conversationId), {
+    lastMessage: text,
+    lastMessageAt: serverTimestamp(),
+  });
+
+  return ref.id;
 }
