@@ -8,18 +8,13 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ConfirmLogoutModal from "@/components/common/ConfirmLogoutModal";
 
-/* =======================
-   TYPES
-======================= */
+/* ---------- Types ---------- */
 interface UserProfile {
   displayName: string;
   email: string;
   photoURL?: string;
 }
 
-/* =======================
-   NAVBAR
-======================= */
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
 
@@ -29,9 +24,7 @@ export default function Navbar() {
 
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  /* =======================
-     REAL-TIME PROFILE
-  ======================= */
+  /* ---------- Fetch Profile (real-time) ---------- */
   useEffect(() => {
     if (!user) return;
 
@@ -45,9 +38,7 @@ export default function Navbar() {
     return () => unsubscribe();
   }, [user]);
 
-  /* =======================
-     CLOSE POPOVER ON OUTSIDE CLICK
-  ======================= */
+  /* ---------- Close on outside click ---------- */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -62,9 +53,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* =======================
-     HELPERS
-  ======================= */
+  /* ---------- Helpers ---------- */
   const getInitials = (name?: string) => {
     if (!name) return "";
     const parts = name.trim().split(" ");
@@ -73,9 +62,7 @@ export default function Navbar() {
       : parts[0][0];
   };
 
-  /* =======================
-     LOGOUT HANDLERS
-  ======================= */
+  /* ---------- Logout handlers ---------- */
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
     setOpen(false);
@@ -86,31 +73,30 @@ export default function Navbar() {
     setShowLogoutConfirm(false);
   };
 
-  /* =======================
-     UI
-  ======================= */
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
-      {/* App Title */}
-      <Link href="/" className="text-sm font-semibold text-purple-700">
+      {/* Logo / Title */}
+      <h2 className="text-sm font-semibold text-gray-900">
         ChatSphere
-      </Link>
+      </h2>
 
       {!loading && user && (
         <div className="relative flex items-center gap-3" ref={popoverRef}>
-          {/* Avatar + Name + Hamburger */}
+          {/* Avatar */}
           <button
             onClick={() => setOpen((p) => !p)}
             className="flex items-center gap-2 rounded-full px-2 py-1 hover:bg-gray-100 transition"
           >
             {profile?.photoURL ? (
-              <img
+              <Image
                 src={profile.photoURL}
                 className="w-8 h-8 rounded-full object-cover"
+                width={16}
+              height={16}
                 alt="Avatar"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+              <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold">
                 {getInitials(profile?.displayName || user.email || "")}
               </div>
             )}
@@ -128,27 +114,27 @@ export default function Navbar() {
             />
           </button>
 
-          {/* =======================
-             POPOVER MENU
-          ======================= */}
+          {/* Popover */}
           {open && (
-            <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-gray-200 rounded-xl shadow-lg">
+            <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-gray-200 rounded-xl shadow-md">
               {/* Header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
                 {profile?.photoURL ? (
-                  <img
+                  <Image
                     src={profile.photoURL}
                     className="w-9 h-9 rounded-full"
+                    width={16}
+              height={16}
                     alt="Avatar"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                  <div className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-sm">
                     {getInitials(profile?.displayName || user.email || "")}
                   </div>
                 )}
 
                 <div className="min-w-0">
-                  <p className="font-medium text-sm truncate">
+                  <p className="font-medium text-sm text-gray-900 truncate">
                     {profile?.displayName}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
@@ -162,13 +148,14 @@ export default function Navbar() {
                 <Link
                   href="/profile"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100 transition"
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 transition"
                 >
                   <Image
                     src="/images/profile.svg"
                     alt="Profile"
                     width={16}
                     height={16}
+                    className="opacity-70"
                   />
                   Profile
                 </Link>
@@ -182,6 +169,7 @@ export default function Navbar() {
                     alt="Logout"
                     width={16}
                     height={16}
+                    className="opacity-70"
                   />
                   Logout
                 </button>
@@ -191,9 +179,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* =======================
-         LOGOUT CONFIRM MODAL
-      ======================= */}
+      {/* Logout Confirmation Modal */}
       <ConfirmLogoutModal
         open={showLogoutConfirm}
         onCancel={() => setShowLogoutConfirm(false)}
