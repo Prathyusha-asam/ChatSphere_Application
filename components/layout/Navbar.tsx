@@ -91,6 +91,8 @@ export default function Navbar() {
               <Image
                 src={profile.photoURL}
                 className="w-8 h-8 rounded-full object-cover"
+                width={16}
+              height={16}
                 alt="Avatar"
               />
             ) : (
@@ -121,6 +123,8 @@ export default function Navbar() {
                   <Image
                     src={profile.photoURL}
                     className="w-9 h-9 rounded-full"
+                    width={16}
+              height={16}
                     alt="Avatar"
                   />
                 ) : (
