@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { createConversation } from "@/lib/conversations";
 import { useRouter } from "next/navigation";
+import EmptyState from "@/components/ui/EmptyState"; // ✅ added
 
 interface User {
   userId: string;
@@ -58,20 +59,20 @@ export default function StartConversation({
   );
 
   const startChat = async (otherUserId: string) => {
-  if (!user) return;
+    if (!user) return;
 
-  try {
-    setLoading(true);
-    const cid = await createConversation(user.uid, otherUserId);
-    onClose();
-    router.push(`/chat?cid=${cid}`);
-  } catch (err) {
-    console.error("Start conversation failed:", err);
-    setError("Unable to start chat. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setLoading(true);
+      const cid = await createConversation(user.uid, otherUserId);
+      onClose();
+      router.push(`/chat?cid=${cid}`);
+    } catch (err) {
+      console.error("Start conversation failed:", err);
+      setError("Unable to start chat. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -101,10 +102,12 @@ export default function StartConversation({
 
         {/* User list */}
         <div className="max-h-64 overflow-y-auto px-2 pb-2">
-          {filtered.length === 0 && (
-            <p className="px-3 py-4 text-sm text-gray-500 text-center">
-              No users found
-            </p>
+          {filtered.length === 0 && !loading && (
+            <EmptyState
+              title="No users found"
+              description="Try searching with a different name."
+              icon="/images/no-users.svg"
+            />
           )}
 
           {filtered.map((u) => (

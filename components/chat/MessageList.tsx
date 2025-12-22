@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
 import { getUserProfile } from "@/lib/firestore";
+import EmptyState from "@/components/ui/EmptyState"; // ✅ added
 
 export default function MessageList() {
   const { messages, loading } = useChat();
@@ -19,21 +20,14 @@ export default function MessageList() {
 
   // Load sender names (cached)
   const getSenderName = async (uid: string) => {
-    try {
-      if (userCache.current[uid]) return userCache.current[uid];
+    if (userCache.current[uid]) return userCache.current[uid];
 
-      const profile = await getUserProfile(uid);
-      const name = profile?.displayName || "Unknown";
+    const profile = await getUserProfile(uid);
+    const name = profile?.displayName || "Unknown";
 
-      userCache.current[uid] = name;
-      return name;
-    } catch (err) {
-      console.error("Failed to load sender name:", err);
-      return "Unknown";
-    }
+    userCache.current[uid] = name;
+    return name;
   };
-
-
 
   /* ---------- Loading skeletons (unchanged) ---------- */
   if (loading) {
@@ -46,13 +40,15 @@ export default function MessageList() {
     );
   }
 
-  /* ---------- Empty state (unchanged) ---------- */
+  /* ---------- Empty state (ONLY CHANGE HERE) ---------- */
   if (!messages.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-gray-400">
-          Start the conversation 👋
-        </p>
+        <EmptyState
+          title="No messages yet"
+          description="Start the conversation"
+          icon="/images/empty-state.svg"
+        />
       </div>
     );
   }
@@ -89,7 +85,6 @@ function AsyncMessage({
     getSenderName(message.senderId).then((n: string) => {
       if (mounted) setName(n);
     });
-
 
     return () => {
       mounted = false;

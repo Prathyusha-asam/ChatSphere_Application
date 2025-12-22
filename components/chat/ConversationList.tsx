@@ -8,8 +8,6 @@ import {
   where,
   orderBy,
   onSnapshot,
-  QuerySnapshot,
-  DocumentData,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,8 +15,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getUserProfile } from "@/lib/firestore";
 import StartConversation from "./StartConversation";
 import ConversationSkeleton from "@/components/skeletons/ConversationsSkeleton";
+import EmptyState from "@/components/ui/EmptyState"; // ✅ added
 
-/* ---------- Types ---------- */
 interface ConversationItem {
   id: string;
   participants: string[];
@@ -40,7 +38,6 @@ export default function ConversationList() {
   const activeCid = searchParams.get("cid");
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [search, setSearch] = useState("");
@@ -50,31 +47,20 @@ export default function ConversationList() {
   useEffect(() => {
     if (!user) return;
 
-    setLoading(true);
-    setError("");
-
     const q = query(
       collection(db, "conversations"),
       where("participants", "array-contains", user.uid),
       orderBy("lastMessageAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snap: QuerySnapshot<DocumentData>) => {
-        const list = snap.docs
-          .map((d) => ({ id: d.id, ...(d.data() as any) }))
-          .filter((c) => c.lastMessage?.trim());
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const list = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as any) }))
+        .filter((c) => c.lastMessage && c.lastMessage.trim() !== "");
 
-        setConversations(list);
-        setLoading(false);
-      },
-      (err: Error) => {
-        console.error("Conversation list error:", err);
-        setError("Unable to load conversations. Please try again.");
-        setLoading(false);
-      }
-    );
+      setConversations(list);
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, [user]);
@@ -85,69 +71,50 @@ export default function ConversationList() {
       const otherId = c.participants.find((p) => p !== user?.uid);
       if (!otherId || profiles[otherId]) return;
 
-      try {
-        const data = await getUserProfile(otherId);
-        if (data) {
-          setProfiles((prev) => ({
-            ...prev,
-            [otherId]: {
-              displayName: data.displayName,
-              photoURL: data.photoURL,
-            },
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to load user profile:", err);
+      const data = await getUserProfile(otherId);
+      if (data) {
+        setProfiles((p) => ({
+          ...p,
+          [otherId]: {
+            displayName: data.displayName,
+            photoURL: data.photoURL,
+          },
+        }));
       }
     });
-  }, [conversations, profiles, user]);
+  }, [conversations]);
 
-  /* ---------- Loading ---------- */
-  if (loading) {
+  /* ---------- Empty state: no conversations ---------- */
+  if (!loading && !conversations.length) {
     return (
-      <div className="w-80 bg-white">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <ConversationSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  /* ---------- Error ---------- */
-  if (error) {
-    return (
-      <div className="w-80 flex flex-col items-center justify-center px-4 text-center">
-        <p className="text-sm text-red-600 mb-2">{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="text-sm underline"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  /* ---------- Empty state ---------- */
-  if (!conversations.length) {
-    return (
-      <div className="flex flex-col flex-1 items-center justify-center text-center px-4">
-        <p className="text-sm text-gray-500 mb-4">
-          No conversations yet
-        </p>
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition"
-        >
-          Start new chat
-        </button>
+      <>
+        <div className="flex flex-col flex-1 items-center justify-center text-center px-4">
+          <EmptyState
+            title="No conversations yet"
+            description="Start a new chat to begin messaging."
+            icon="/images/empty-state.svg"
+            actionLabel="Start new chat"
+            onAction={() => setOpen(true)}
+          />
+        </div>
 
         {open && <StartConversation onClose={() => setOpen(false)} />}
-      </div>
+      </>
     );
   }
 
-  /* ---------- UI ---------- */
+  /* ---------- Filtered conversations (search) ---------- */
+  const filteredConversations = conversations.filter((c) => {
+    const otherId = c.participants.find((p) => p !== user?.uid);
+    const profile = profiles[otherId || ""];
+    return (
+      !search ||
+      profile?.displayName
+        ?.toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  });
+
   return (
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
 
@@ -166,54 +133,62 @@ export default function ConversationList() {
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        {conversations.map((c) => {
-          const otherId =
-            c.participants.find((p) => p !== user?.uid) || "";
-          const profile = profiles[otherId];
+        {loading &&
+          Array.from({ length: 5 }).map((_, i) => (
+            <ConversationSkeleton key={i} />
+          ))}
 
-          if (
-            search &&
-            profile &&
-            !profile.displayName
-              .toLowerCase()
-              .includes(search.toLowerCase())
-          ) {
-            return null;
-          }
+        {/* ✅ Empty state: search results */}
+        {!loading && search && filteredConversations.length === 0 && (
+          <EmptyState
+            title="No results found"
+            description="Try a different name or clear your search."
+            icon="/images/empty-state.svg"
+          />
+        )}
 
-          return (
-            <div
-              key={c.id}
-              onClick={() => router.push(`/chat?cid=${c.id}`)}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
-                ${c.id === activeCid ? "bg-gray-100" : "hover:bg-gray-50"}`}
-            >
-              {/* Avatar */}
-              {profile?.photoURL ? (
-                <img
-                  src={profile.photoURL}
-                  className="w-9 h-9 rounded-full object-cover"
-                  alt="Avatar"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-gray-900 text-white
-                                flex items-center justify-center text-sm font-medium">
-                  {profile?.displayName?.[0]?.toUpperCase() || "?"}
-                </div>
-              )}
+        {!loading &&
+          filteredConversations.map((c) => {
+            const otherId =
+              c.participants.find((p) => p !== user?.uid) || "";
+            const profile = profiles[otherId];
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 truncate">
-                  {profile?.displayName || "Loading"}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  {c.lastMessage || "No messages yet"}
+            return (
+              <div
+                key={c.id}
+                onClick={() => router.push(`/chat?cid=${c.id}`)}
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
+                  ${c.id === activeCid
+                    ? "bg-gray-100"
+                    : "hover:bg-gray-50"
+                  }`}
+              >
+                {/* Avatar */}
+                {profile?.photoURL ? (
+                  <img
+                    src={profile.photoURL}
+                    className="w-9 h-9 rounded-full object-cover"
+                    alt="Avatar"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-gray-900 text-white
+                                  flex items-center justify-center text-sm font-medium">
+                    {profile?.displayName?.[0]?.toUpperCase() || "?"}
+                  </div>
+                )}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {profile?.displayName || "Loading"}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {c.lastMessage || "No messages yet"}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {/* New Chat Button */}

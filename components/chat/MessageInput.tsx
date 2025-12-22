@@ -6,8 +6,9 @@ import { setTypingStatus } from "@/lib/typing";
 import { useChat } from "@/hooks/useChat";
 import EmojiPicker from "emoji-picker-react";
 import LoadingSpinner from "../ui/LoadingSpinner";
+import Image from "next/image";
 
-const MAX_CHARS = 500; // ✅ added
+const MAX_CHARS = 500;
 
 export default function MessageInput() {
   const {
@@ -114,7 +115,12 @@ export default function MessageInput() {
           className="flex h-10 w-10 items-center justify-center rounded-full
                      text-gray-600 hover:bg-gray-100 transition"
         >
-          🙂
+          <Image
+            src="/images/smiley.svg"
+            alt="Emoji"
+            width={22}
+            height={22}
+          />
         </button>
 
         {showEmoji && (
@@ -136,7 +142,6 @@ export default function MessageInput() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            // ✅ Ctrl + Enter support
             if (e.key === "Enter" && e.ctrlKey) {
               e.preventDefault();
               handleSend();
@@ -164,7 +169,6 @@ export default function MessageInput() {
 
       </div>
 
-      {/* ✅ Error message + character count */}
       <div className="mt-1 flex items-center justify-between px-2 text-xs">
         <span className="text-red-500">{error}</span>
         <span
