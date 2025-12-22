@@ -22,20 +22,30 @@ export default function StartConversation({
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadUsers() {
-      const snap = await getDocs(collection(db, "users"));
-      const list: User[] = [];
+      try {
+        setLoading(true);
+        const snap = await getDocs(collection(db, "users"));
+        const list: User[] = [];
 
-      snap.forEach((doc) => {
-        const data = doc.data() as User;
-        if (data.userId && data.userId !== user?.uid) {
-          list.push(data);
-        }
-      });
+        snap.forEach((doc) => {
+          const data = doc.data() as User;
+          if (data.userId && data.userId !== user?.uid) {
+            list.push(data);
+          }
+        });
 
-      setUsers(list);
+        setUsers(list);
+      } catch (err) {
+        console.error("Failed to load users:", err);
+        setError("Unable to load users.");
+      } finally {
+        setLoading(false);
+      }
     }
 
     loadUsers();
@@ -48,12 +58,20 @@ export default function StartConversation({
   );
 
   const startChat = async (otherUserId: string) => {
-    if (!user) return;
+  if (!user) return;
 
+  try {
+    setLoading(true);
     const cid = await createConversation(user.uid, otherUserId);
     onClose();
     router.push(`/chat?cid=${cid}`);
-  };
+  } catch (err) {
+    console.error("Start conversation failed:", err);
+    setError("Unable to start chat. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">

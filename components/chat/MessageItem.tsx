@@ -81,10 +81,18 @@ export default function MessageItem({
 
   /* ---------- Delete ---------- */
   const handleDelete = async () => {
-    if (!id || !currentConversation) return;
+  if (!id || !currentConversation) return;
+
+  try {
     await deleteMessage(currentConversation.id, id);
+  } catch (err) {
+    console.error("Delete message failed:", err);
+    alert("Unable to delete message. Please try again.");
+  } finally {
     setMenuOpen(false);
-  };
+  }
+};
+
 
   /* ---------- Reply ---------- */
   const handleReply = () => {

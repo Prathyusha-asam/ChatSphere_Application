@@ -19,14 +19,20 @@ export default function MessageList() {
 
   // Load sender names (cached)
   const getSenderName = async (uid: string) => {
-    if (userCache.current[uid]) return userCache.current[uid];
+    try {
+      if (userCache.current[uid]) return userCache.current[uid];
 
-    const profile = await getUserProfile(uid);
-    const name = profile?.displayName || "Unknown";
+      const profile = await getUserProfile(uid);
+      const name = profile?.displayName || "Unknown";
 
-    userCache.current[uid] = name;
-    return name;
+      userCache.current[uid] = name;
+      return name;
+    } catch (err) {
+      console.error("Failed to load sender name:", err);
+      return "Unknown";
+    }
   };
+
 
 
   /* ---------- Loading skeletons (unchanged) ---------- */

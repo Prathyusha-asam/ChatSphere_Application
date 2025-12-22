@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { forgotPassword } from "@/lib/auth";
+import { getAuthErrorMessage } from "@/lib/getAuthErrorMessage";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function ForgotPasswordPage() {
       await forgotPassword(email);
       setSuccess("Password reset email sent. Check your inbox.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -37,7 +38,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-white overflow-hidden">
-      
+
       <form
         onSubmit={handleSubmit}
         className="w-[380px] rounded-xl border border-gray-200 bg-white px-6 py-8 shadow-sm"
@@ -96,6 +97,18 @@ export default function ForgotPasswordPage() {
             Sign in
           </button>
         </p>
+        {error && (
+          <div className="mb-4 text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button
+              onClick={handleSubmit as any}
+              className="mt-2 text-sm underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
       </form>
     </div>
   );

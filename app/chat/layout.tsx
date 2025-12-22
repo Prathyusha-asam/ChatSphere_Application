@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ChatProvider } from "@/context/ChatContext";
 
 export default function ChatLayout({
@@ -5,5 +6,9 @@ export default function ChatLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <ChatProvider>{children}</ChatProvider>;
+  return (
+    <ErrorBoundary>
+      <ChatProvider>{children}</ChatProvider>
+    </ErrorBoundary>
+  );
 }

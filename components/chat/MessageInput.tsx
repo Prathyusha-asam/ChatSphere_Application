@@ -17,9 +17,9 @@ export default function MessageInput() {
     clearComposerState,
   } = useChat();
 
-  /* ✅ Initialize state ONCE per edit session */
   const [text, setText] = useState(editMessage?.text ?? "");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [error, setError] = useState("");
 
   const emojiRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -38,14 +38,20 @@ export default function MessageInput() {
   const handleSend = async () => {
     if (!text.trim() || !currentConversation) return;
 
-    await sendMessage(text);
-    setText("");
-
-    setTypingStatus(
-      currentConversation.id,
-      auth.currentUser!.uid,
-      false
-    );
+    try {
+      setError("");
+      await sendMessage(text);
+      setText("");
+    } catch (err) {
+      console.error("Send message failed:", err);
+      setError("Failed to send message. Try again.");
+    } finally {
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser!.uid,
+        false
+      );
+    }
   };
 
   if (!currentConversation) return null;
@@ -128,6 +134,12 @@ export default function MessageInput() {
         >
           {loading ? <LoadingSpinner size={16} /> : "Send"}
         </button>
+        {error && (
+          <p className="mt-2 text-xs text-red-600 text-center">
+            {error}
+          </p>
+        )}
+
       </div>
     </div>
   );
