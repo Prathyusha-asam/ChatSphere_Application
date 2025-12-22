@@ -4,45 +4,37 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
-import { getUserProfile } from "@/lib/firestore";
-import ConfirmLogoutModal from "@/components/common/ConfirmLogoutModal";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-/* =======================
-   TYPES
-======================= */
+/* ---------- Types ---------- */
 interface UserProfile {
   displayName: string;
   email: string;
   photoURL?: string;
 }
 
-/* =======================
-   NAVBAR
-======================= */
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  /* =======================
-     FETCH USER PROFILE
-  ======================= */
+  /* ---------- Fetch Profile ---------- */
   useEffect(() => {
     if (!user) return;
 
-    const fetchProfile = async () => {
-      const data = await getUserProfile(user.uid);
-      if (data) setProfile(data as UserProfile);
-    };
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(userRef, (snap) => {
+      if (snap.exists()) {
+        setProfile(snap.data() as UserProfile);
+      }
+    });
 
-    fetchProfile();
+    return () => unsubscribe();
   }, [user]);
 
-  /* =======================
-     CLOSE POPOVER ON OUTSIDE CLICK
-  ======================= */
+  /* ---------- Close on outside click ---------- */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -57,9 +49,6 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* =======================
-     HELPERS
-  ======================= */
   const getInitials = (name?: string) => {
     if (!name) return "";
     const parts = name.trim().split(" ");
@@ -68,72 +57,50 @@ export default function Navbar() {
       : parts[0][0];
   };
 
-  /* =======================
-     LOGOUT CONFIRM HANDLERS
-  ======================= */
-  const handleLogoutClick = () => {
-    setShowLogoutConfirm(true);
-    setOpen(false);
-  };
-
-  const handleConfirmLogout = async () => {
-    await logout();
-    setShowLogoutConfirm(false);
-  };
-
-  /* =======================
-     UI
-  ======================= */
   return (
-    <nav className="flex items-center justify-between px-6 py-4 bg-white shadow-sm relative">
-      {/* App Title */}
-      <h1 className="text-lg font-bold text-purple-700">
-        CHAT SPHERE
-      </h1>
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
+      {/* Logo / Title */}
+      <Link href="/" className="text-sm font-semibold text-gray-900">
+        ChatSphere
+      </Link>
 
       {!loading && user && (
-        <div
-          className="relative flex items-center gap-4"
-          ref={popoverRef}
-        >
-          {/* Avatar + Name */}
-          <div className="flex flex-col items-center text-center">
+        <div className="relative flex items-center gap-3" ref={popoverRef}>
+          {/* Avatar */}
+          <button
+            onClick={() => setOpen((p) => !p)}
+            className="flex items-center gap-2 rounded-full px-2 py-1 hover:bg-gray-100 transition"
+          >
             {profile?.photoURL ? (
               <img
                 src={profile.photoURL}
-                className="w-9 h-9 rounded-full object-cover"
+                className="w-8 h-8 rounded-full object-cover"
                 alt="Avatar"
               />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+              <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold">
                 {getInitials(profile?.displayName || user.email || "")}
               </div>
             )}
-            <span className="text-xs font-medium mt-1">
+
+            <span className="hidden sm:block text-sm font-medium text-gray-800">
               {profile?.displayName}
             </span>
-          </div>
 
-          {/* Hamburger */}
-          <button
-            onClick={() => setOpen((p) => !p)}
-            className="p-2 rounded hover:bg-gray-100"
-          >
             <Image
               src="/images/hamburger.svg"
               alt="Menu"
-              width={22}
-              height={22}
+              width={16}
+              height={16}
+              className="opacity-60"
             />
           </button>
 
-          {/* =======================
-             POPOVER MENU
-          ======================= */}
+          {/* Popover */}
           {open && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white border rounded-xl shadow-lg">
+            <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-gray-200 rounded-xl shadow-md">
               {/* Header */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
                 {profile?.photoURL ? (
                   <img
                     src={profile.photoURL}
@@ -141,16 +108,16 @@ export default function Navbar() {
                     alt="Avatar"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white font-semibold">
+                  <div className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-sm">
                     {getInitials(profile?.displayName || user.email || "")}
                   </div>
                 )}
 
-                <div>
-                  <p className="font-medium text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-gray-900 truncate">
                     {profile?.displayName}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 truncate">
                     {user.email}
                   </p>
                 </div>
@@ -161,44 +128,39 @@ export default function Navbar() {
                 <Link
                   href="/profile"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100"
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 transition"
                 >
                   <Image
                     src="/images/profile.svg"
                     alt="Profile"
                     width={16}
                     height={16}
+                    className="opacity-70"
                   />
-                  <span>Profile</span>
+                  Profile
                 </Link>
 
-                {/* Logout */}
                 <button
-                  onClick={handleLogoutClick}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  onClick={async () => {
+                    await logout();
+                    setOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition"
                 >
                   <Image
                     src="/images/logout.svg"
                     alt="Logout"
                     width={16}
                     height={16}
+                    className="opacity-70"
                   />
-                  <span>Logout</span>
+                  Logout
                 </button>
               </div>
             </div>
           )}
         </div>
       )}
-
-      {/* =======================
-         LOGOUT CONFIRM MODAL
-      ======================= */}
-      <ConfirmLogoutModal
-        open={showLogoutConfirm}
-        onCancel={() => setShowLogoutConfirm(false)}
-        onConfirm={handleConfirmLogout}
-      />
     </nav>
   );
 }

@@ -32,11 +32,7 @@ export default function ChatHeader() {
       if (!snap.exists()) return;
 
       const participants: string[] = snap.data().participants || [];
-
-      const otherUserId = participants.find(
-        (uid) => uid !== user.uid
-      );
-
+      const otherUserId = participants.find((uid) => uid !== user.uid);
       if (!otherUserId) return;
 
       const userRef = doc(db, "users", otherUserId);
@@ -56,26 +52,28 @@ export default function ChatHeader() {
   if (!profile) return null;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b bg-white">
+    <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-white">
 
+      {/* Avatar */}
       {profile.photoURL ? (
         <img
           src={profile.photoURL}
           alt="Avatar"
-          className="w-10 h-10 rounded-full object-cover"
+          className="w-9 h-9 rounded-full object-cover"
         />
       ) : (
-        <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-semibold">
-          {profile.displayName?.[0]}
+        <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold">
+          {profile.displayName?.[0]?.toUpperCase()}
         </div>
       )}
 
-      <div className="flex flex-col">
-        <span className="font-semibold text-sm">
+      {/* User Info */}
+      <div className="flex flex-col leading-tight">
+        <span className="text-sm font-medium text-gray-900">
           {profile.displayName}
         </span>
 
-        <div className="flex items-center gap-1 text-xs text-gray-500">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
           {profile.isOnline ? (
             <>
               <span className="w-2 h-2 rounded-full bg-green-500" />

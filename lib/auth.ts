@@ -1,4 +1,4 @@
-import {createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,User,} from "firebase/auth";
+import {createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,sendPasswordResetEmail,User,} from "firebase/auth";
 import { auth } from "./firebase";
 import { createUserProfile } from "./firestore";
  
@@ -122,3 +122,19 @@ export function getCurrentUser(): Promise<User | null> {
   });
 }
 //endregion Get Current User
+//region Forgot Password
+/**
+ * Sends password reset email to the user
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  try {
+    validateEmail(email);
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error("Failed to send password reset email");
+  }
+}
+//endregion Forgot Password

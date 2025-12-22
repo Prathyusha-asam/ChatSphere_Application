@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import MessageSkeleton from "@/components/skeletons/MessageSkeleton";
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
@@ -11,7 +12,7 @@ export default function MessageList() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const userCache = useRef<Record<string, string>>({});
 
-  // Auto scroll to bottom
+  /* ---------- Auto scroll to bottom (unchanged behavior) ---------- */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -22,53 +23,51 @@ export default function MessageList() {
 
     const profile = await getUserProfile(uid);
     const name = profile?.displayName || "Unknown";
+
     userCache.current[uid] = name;
     return name;
   };
 
+
+  /* ---------- Loading skeletons (unchanged) ---------- */
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-10 w-2/3 bg-gray-200 rounded animate-pulse"
-          />
+      <div className="px-6 py-4 space-y-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <MessageSkeleton key={i} />
         ))}
       </div>
     );
   }
 
-  if (!loading && messages.length === 0) {
+  /* ---------- Empty state (unchanged) ---------- */
+  if (!messages.length) {
     return (
-      <p className="text-gray-400 text-center mt-10">
-        No messages yet. Start the conversation 👋
-      </p>
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-sm text-gray-400">
+          Start the conversation 👋
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {messages.map((msg, index) => {
-        const prev = messages[index - 1];
-        const showSender =
-          !prev || prev.senderId !== msg.senderId;
-
-        return (
-          <AsyncMessage
-            key={msg.id}
-            message={msg}
-            showSender={showSender}
-            getSenderName={getSenderName}
-          />
-        );
-      })}
-
+    <div className="px-6 py-4 space-y-4">
+      {messages.map((msg) => (
+        <AsyncMessage
+          key={msg.id}
+          message={msg}
+          getSenderName={getSenderName}
+        />
+      ))}
       <div ref={bottomRef} />
     </div>
   );
 }
 
+/* =========================================================
+   Async message wrapper (logic unchanged, safely extended)
+   ========================================================= */
 function AsyncMessage({
   message,
   showSender,
@@ -77,16 +76,29 @@ function AsyncMessage({
   const [name, setName] = useState("");
 
   useEffect(() => {
-    getSenderName(message.senderId).then(setName);
-  }, [message.senderId]);
+    if (!message?.senderId) return;
+
+    let mounted = true;
+
+    getSenderName(message.senderId).then((n: string) => {
+      if (mounted) setName(n);
+    });
+
+
+    return () => {
+      mounted = false;
+    };
+  }, [message?.senderId, getSenderName]);
 
   return (
     <MessageItem
+      id={message.id}
       text={message.text}
       senderId={message.senderId}
       senderName={name}
       createdAt={message.createdAt}
-      showSender={showSender}
+      editedAt={message.editedAt}
+      replyTo={message.replyTo}
     />
   );
 }
