@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 
 /* =======================
    PROPS
@@ -8,7 +9,7 @@ import Image from "next/image";
 interface ConfirmLogoutModalProps {
   open: boolean;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>; // 🔑 async-safe
 }
 
 /* =======================
@@ -19,14 +20,31 @@ export default function ConfirmLogoutModal({
   onCancel,
   onConfirm,
 }: ConfirmLogoutModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   if (!open) return null;
+
+  const handleConfirm = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      await onConfirm();
+    } catch (err) {
+      console.error("Logout failed:", err);
+      setError("Unable to log out. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
+      {/* Overlay (disabled while loading) */}
       <div
         className="absolute inset-0 bg-black/70"
-        onClick={onCancel}
+        onClick={!loading ? onCancel : undefined}
       />
 
       {/* Modal */}
@@ -50,30 +68,41 @@ export default function ConfirmLogoutModal({
         </h3>
 
         {/* Message */}
-        <p className="text-sm text-gray-500 text-center mb-6">
+        <p className="text-sm text-gray-500 text-center mb-4">
           Are you sure you want to log out?
           <br />
           You will need to sign in again to continue.
         </p>
 
+        {/* Error */}
+        {error && (
+          <p className="mb-4 text-sm text-red-600 text-center">
+            {error}
+          </p>
+        )}
+
         {/* Actions */}
         <div className="flex gap-3">
           <button
             onClick={onCancel}
+            disabled={loading}
             className="flex-1 border border-gray-300 rounded-md py-2
                        text-sm text-gray-700
-                       hover:bg-gray-100 transition"
+                       hover:bg-gray-100 transition
+                       disabled:opacity-60"
           >
             Cancel
           </button>
 
           <button
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={loading}
             className="flex-1 rounded-md py-2
                        bg-black text-white
-                       hover:bg-gray-900 transition font-medium"
+                       hover:bg-gray-900 transition font-medium
+                       disabled:opacity-60"
           >
-            Log out
+            {loading ? "Logging out…" : "Log out"}
           </button>
         </div>
       </div>

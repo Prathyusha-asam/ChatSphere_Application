@@ -10,6 +10,12 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+/**
+ * useTypingIndicator
+ *
+ * Fixes "typing stuck" issue by ignoring stale typing records.
+ * Any typing update older than 3 seconds is treated as stopped.
+ */
 export function useTypingIndicator(
   conversationId?: string,
   currentUserId?: string
@@ -35,9 +41,31 @@ export function useTypingIndicator(
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        const now = Date.now();
+
         const users = snapshot.docs
-          .map((d) => d.data().userId)
-          .filter((uid) => uid && uid !== currentUserId);
+          .map((d) => {
+            const data = d.data();
+
+            // ⏱ Read last update time safely
+            const updatedAt =
+              data.updatedAt?.toDate?.() ||
+              data.createdAt?.toDate?.();
+
+            // If no timestamp, treat as invalid
+            if (!updatedAt) return null;
+
+            const diffMs = now - updatedAt.getTime();
+
+            // ❌ Ignore stale typing (> 3 seconds)
+            if (diffMs > 3000) return null;
+
+            // ❌ Ignore self
+            if (data.userId === currentUserId) return null;
+
+            return data.userId as string;
+          })
+          .filter(Boolean) as string[];
 
         setTypingUserIds(users);
       },

@@ -1,20 +1,27 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import MessageSkeleton from "@/components/skeletons/MessageSkeleton";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
 import { getUserProfile } from "@/lib/firestore";
+import EmptyState from "@/components/ui/EmptyState"; // ✅ added
+import React from "react";
 
 export default function MessageList() {
   const { messages, loading } = useChat();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const userCache = useRef<Record<string, string>>({});
+  const prevCountRef = useRef<number>(0);
 
-  /* ---------- Auto scroll to bottom (unchanged behavior) ---------- */
+  /* ---------- Auto scroll to bottom (NT-29 optimized) ---------- */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > prevCountRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevCountRef.current = messages.length;
   }, [messages]);
 
   // Load sender names (cached)
@@ -39,11 +46,15 @@ export default function MessageList() {
     );
   }
 
-  /* ---------- Empty state (unchanged) ---------- */
+  /* ---------- Empty state ---------- */
   if (!messages.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-gray-400">Start the conversation 👋</p>
+        <EmptyState
+          title="No messages yet"
+          description="Start the conversation"
+          icon="/images/empty-state.svg"
+        />
       </div>
     );
   }
@@ -51,7 +62,7 @@ export default function MessageList() {
   return (
     <div className="px-6 py-4 space-y-4">
       {messages.map((msg) => (
-        <AsyncMessage
+        <MemoAsyncMessage
           key={msg.id}
           message={msg}
           getSenderName={getSenderName}
@@ -63,9 +74,15 @@ export default function MessageList() {
 }
 
 /* =========================================================
-   Async message wrapper (logic unchanged, safely extended)
+   Async message wrapper (NT-29 optimized)
    ========================================================= */
-function AsyncMessage({ message, showSender, getSenderName }: any) {
+const MemoAsyncMessage = React.memo(function AsyncMessage({
+  message,
+  getSenderName,
+}: {
+  message: any;
+  getSenderName: (uid: string) => Promise<string>;
+}) {
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -73,14 +90,14 @@ function AsyncMessage({ message, showSender, getSenderName }: any) {
 
     let mounted = true;
 
-    getSenderName(message.senderId).then((n: string) => {
+    getSenderName(message.senderId).then((n) => {
       if (mounted) setName(n);
     });
 
     return () => {
       mounted = false;
     };
-  }, [message?.senderId, getSenderName]);
+  }, [message.senderId, getSenderName]);
 
   return (
     <MessageItem
@@ -91,6 +108,8 @@ function AsyncMessage({ message, showSender, getSenderName }: any) {
       createdAt={message.createdAt}
       editedAt={message.editedAt}
       replyTo={message.replyTo}
+      isRead={message.isRead}
+      deliveredAt={message.deliveredAt}
     />
   );
-}
+});

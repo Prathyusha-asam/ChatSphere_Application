@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth";
+import { getAuthErrorMessage } from "@/lib/getAuthErrorMessage";
 
 
 
 export default function RegisterForm() {
   const router = useRouter();
- 
+
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +36,7 @@ export default function RegisterForm() {
       setSuccess("Account created successfully. Redirecting...");
       setTimeout(() => router.push("/auth/login"), 1500);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -162,6 +163,19 @@ export default function RegisterForm() {
           Sign in
         </button>
       </p>
+      {error && (
+        <div className="mb-4 text-center">
+          <p className="text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={() => setError("")}
+            className="mt-1 text-sm underline"
+          >
+            Fix and retry
+          </button>
+        </div>
+      )}
+
     </form>
   );
 }

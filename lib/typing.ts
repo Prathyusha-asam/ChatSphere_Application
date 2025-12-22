@@ -1,34 +1,41 @@
-import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  deleteDoc,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
-//region Typing Indicator
-
 /**
- * Sets typing status for a user in a conversation
+ * setTypingStatus
+ *
+ * Writes typing state with a fresh timestamp every time.
+ * This prevents "ghost typing" issues.
  */
 export async function setTypingStatus(
   conversationId: string,
   userId: string,
   isTyping: boolean
-): Promise<void> {
+) {
   const docId = `${conversationId}_${userId}`;
-  const typingRef = doc(db, "typingIndicators", docId);
+  const ref = doc(db, "typingIndicators", docId);
 
-  try {
-    if (isTyping) {
-      await setDoc(typingRef, {
-        conversationId,
-        userId,
-        isTyping: true,
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      await deleteDoc(typingRef);
-    }
-  } catch (error) {
-    console.error("Error updating typing status:", error);
-    throw error;
+  // When user stops typing, we DELETE the document
+  // This is the cleanest & safest approach
+  if (!isTyping) {
+    await deleteDoc(ref);
+    return;
   }
-}
 
-//endregion Typing Indicator
+  // When user is typing, always update timestamp
+  await setDoc(
+    ref,
+    {
+      conversationId,
+      userId,
+      isTyping: true,
+      updatedAt: serverTimestamp(), 
+    },
+    { merge: true }
+  );
+}

@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,37 +7,37 @@ import { useEffect, useRef, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ConfirmLogoutModal from "@/components/common/ConfirmLogoutModal";
-
+ 
 /* ---------- Types ---------- */
 interface UserProfile {
   displayName: string;
   email: string;
   photoURL?: string;
 }
-
+ 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
-
+ 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
+ 
   const popoverRef = useRef<HTMLDivElement>(null);
-
+ 
   /* ---------- Fetch Profile (real-time) ---------- */
   useEffect(() => {
     if (!user) return;
-
+ 
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(userRef, (snap) => {
       if (snap.exists()) {
         setProfile(snap.data() as UserProfile);
       }
     });
-
+ 
     return () => unsubscribe();
   }, [user]);
-
+ 
   /* ---------- Close on outside click ---------- */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -48,11 +48,11 @@ export default function Navbar() {
         setOpen(false);
       }
     };
-
+ 
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
+ 
   /* ---------- Helpers ---------- */
   const getInitials = (name?: string) => {
     if (!name) return "";
@@ -61,25 +61,25 @@ export default function Navbar() {
       ? parts[0][0] + parts[1][0]
       : parts[0][0];
   };
-
+ 
   /* ---------- Logout handlers ---------- */
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
     setOpen(false);
   };
-
+ 
   const handleConfirmLogout = async () => {
     await logout();
     setShowLogoutConfirm(false);
   };
-
+ 
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
       {/* Logo / Title */}
       <h2 className="text-sm font-semibold text-gray-900">
         ChatSphere
       </h2>
-
+ 
       {!loading && user && (
         <div className="relative flex items-center gap-3" ref={popoverRef}>
           {/* Avatar */}
@@ -100,11 +100,11 @@ export default function Navbar() {
                 {getInitials(profile?.displayName || user.email || "")}
               </div>
             )}
-
+ 
             <span className="hidden sm:block text-sm font-medium text-gray-800">
               {profile?.displayName}
             </span>
-
+ 
             <Image
               src="/images/hamburger.svg"
               alt="Menu"
@@ -113,7 +113,7 @@ export default function Navbar() {
               className="opacity-60"
             />
           </button>
-
+ 
           {/* Popover */}
           {open && (
             <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-gray-200 rounded-xl shadow-md">
@@ -132,7 +132,7 @@ export default function Navbar() {
                     {getInitials(profile?.displayName || user.email || "")}
                   </div>
                 )}
-
+ 
                 <div className="min-w-0">
                   <p className="font-medium text-sm text-gray-900 truncate">
                     {profile?.displayName}
@@ -142,7 +142,7 @@ export default function Navbar() {
                   </p>
                 </div>
               </div>
-
+ 
               {/* Menu */}
               <div className="py-1">
                 <Link
@@ -159,7 +159,7 @@ export default function Navbar() {
                   />
                   Profile
                 </Link>
-
+ 
                 <button
                   onClick={handleLogoutClick}
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition"
@@ -178,7 +178,7 @@ export default function Navbar() {
           )}
         </div>
       )}
-
+ 
       {/* Logout Confirmation Modal */}
       <ConfirmLogoutModal
         open={showLogoutConfirm}
@@ -188,3 +188,5 @@ export default function Navbar() {
     </nav>
   );
 }
+ 
+ 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
+import React from "react";
 
 /* ---------- constants ---------- */
 const MENU_WIDTH = 176;
@@ -25,9 +26,11 @@ interface MessageItemProps {
     text: string;
     senderId?: string;
   };
+  isRead?: boolean;
+  deliveredAt?: any;
 }
 
-export default function MessageItem({
+function MessageItem({
   id,
   text,
   senderId,
@@ -35,6 +38,8 @@ export default function MessageItem({
   createdAt,
   editedAt,
   replyTo,
+  isRead,
+  deliveredAt,
 }: MessageItemProps) {
   const isMine = senderId === auth.currentUser?.uid;
 
@@ -45,24 +50,27 @@ export default function MessageItem({
   const menuRef = useRef<HTMLDivElement>(null);
 
   /* ---------- Right click ---------- */
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
 
-    const clickX = e.clientX;
-    const clickY = e.clientY;
+      const clickX = e.clientX;
+      const clickY = e.clientY;
 
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
 
-    let x = clickX;
-    let y = clickY;
+      let x = clickX;
+      let y = clickY;
 
-    if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
-    if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
+      if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
+      if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
 
-    setMenuPos({ x, y });
-    setMenuOpen(true);
-  };
+      setMenuPos({ x, y });
+      setMenuOpen(true);
+    },
+    []
+  );
 
   /* ---------- Close on outside click ---------- */
   useEffect(() => {
@@ -75,27 +83,31 @@ export default function MessageItem({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ---------- Delete ---------- */
-  const handleDelete = async () => {
+  /* ---------- Delete (MERGED + NT-29) ---------- */
+  const handleDelete = useCallback(async () => {
     if (!id || !currentConversation) return;
-    await deleteMessage(currentConversation.id, id);
-    setMenuOpen(false);
-  };
+
+    try {
+      await deleteMessage(currentConversation.id, id);
+    } catch (err) {
+      setMenuOpen(false);
+    }
+  }, [id, currentConversation]);
 
   /* ---------- Reply ---------- */
-  const handleReply = () => {
+  const handleReply = useCallback(() => {
     setReplyTo({ id, text, senderId });
     setMenuOpen(false);
-  };
+  }, [id, text, senderId, setReplyTo]);
 
   /* ---------- Edit ---------- */
   const handleEdit = () => {
     setEditMessage({
       id,
-      text, // guaranteed message text
+      text,
     });
     setMenuOpen(false);
-  };
+  }, [id, text, setEditMessage]);
 
   return (
     <>
@@ -114,7 +126,7 @@ export default function MessageItem({
           className={`px-4 py-2 rounded-2xl text-sm leading-relaxed space-y-1
     ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
         >
-          {/* WhatsApp-style quoted reply */}
+        
           {replyTo && !editedAt && (
             <div
               onClick={() => {
@@ -152,6 +164,15 @@ export default function MessageItem({
               hour: "2-digit",
               minute: "2-digit",
             })}
+            {isMine && (
+              <span className="ml-1">
+                {isRead
+                  ? "👁 Seen"
+                  : deliveredAt
+                  ? "✓ Delivered"
+                  : "Sending…"}
+              </span>
+            )}
           </span>
         )}
       </div>
@@ -204,3 +225,4 @@ function MenuItem({
     </button>
   );
 }
+export default React.memo(MessageItem);

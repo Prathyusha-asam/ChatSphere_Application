@@ -1,30 +1,78 @@
 "use client";
 
 import { useUserPresence } from "@/hooks/useUserPresence";
+import { useState, useEffect } from "react";
+import EmptyState from "@/components/ui/EmptyState"; // ✅ added
 
 export default function UserPresence() {
   const users = useUserPresence();
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      setLoading(true);
+      if (Array.isArray(users)) {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("User presence failed:", err);
+      setError("Unable to load user presence");
+      setLoading(false);
+    }
+  }, [users]);
+
+  if (loading) {
+    return (
+      <div className="border rounded p-4 mb-4 text-sm text-gray-500">
+        Loading users…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border rounded p-4 mb-4 text-sm text-red-600">
+        {error}
+      </div>
+    );
+  }
+
+  const safeUsers = users.filter(
+    (u) => u.id && u.displayName
+  );
+
+  /* ---------- Empty state (ONLY CHANGE) ---------- */
+  if (!safeUsers.length) {
+    return (
+      <div className="border rounded p-4 mb-4">
+        <EmptyState
+          title="No active users"
+          description="Users will appear here when they come online."
+          icon="/images/users-empty.svg"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="border rounded p-4 mb-4">
       <h3 className="font-semibold mb-2">Users</h3>
 
-      {users
-        // ✅ prevent rendering incomplete documents
-        .filter((u) => u.id && u.displayName)
-        .map((u) => (
-          <div
-            key={u.id} // ✅ Firestore document ID (guaranteed unique)
-            className="flex items-center gap-2 mb-2"
-          >
-            <span
-              className={`inline-block w-2 h-2 rounded-full ${
-                u.isOnline ? "bg-green-500" : "bg-gray-400"
-              }`}
-            />
-            <span className="text-sm">{u.displayName}</span>
-          </div>
-        ))}
+      {safeUsers.map((u) => (
+        <div
+          key={u.id}
+          className="flex items-center gap-2 mb-2"
+        >
+          <span
+            className={`inline-block w-2 h-2 rounded-full ${
+              u.isOnline ? "bg-green-500" : "bg-gray-400"
+            }`}
+          />
+          <span className="text-sm">{u.displayName}</span>
+        </div>
+      ))}
     </div>
   );
 }

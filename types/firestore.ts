@@ -32,6 +32,7 @@ export interface MessageDoc {
   senderId: string;
   text: string;
   isRead: boolean;
+  deliveredAt?: Timestamp;
   createdAt: Timestamp;
 }
 
