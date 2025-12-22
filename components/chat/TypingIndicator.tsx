@@ -8,6 +8,8 @@ import { getUserProfile } from "@/lib/firestore";
 
 /**
  * Displays typing indicator with user name(s)
+ * Shows ONLY when OTHER user(s) are typing
+ * Immediately hides when they stop
  */
 function TypingIndicator() {
   const { user } = useAuth();
@@ -15,7 +17,7 @@ function TypingIndicator() {
 
   const conversationId = currentConversation?.id || "";
 
-  const typingUserIds = useTypingIndicator(
+  const rawTypingUserIds = useTypingIndicator(
     conversationId,
     user?.uid || ""
   );
@@ -30,13 +32,25 @@ function TypingIndicator() {
       try {
         setError("");
 
-        if (!typingUserIds.length) {
+        // 🚨 HARD RESET — nobody typing
+        if (!rawTypingUserIds.length) {
+          setTypingNames([]);
+          return;
+        }
+
+        // ✅ DEFENSIVE FILTER — remove current user explicitly
+        const otherUserIds = rawTypingUserIds.filter(
+          (uid) => uid !== user?.uid
+        );
+
+        // 🚨 If only self was present → hide indicator
+        if (!otherUserIds.length) {
           setTypingNames([]);
           return;
         }
 
         const names = await Promise.all(
-          typingUserIds.map(async (uid: string) => {
+          otherUserIds.map(async (uid) => {
             try {
               const profile = await getUserProfile(uid);
               return profile?.displayName || "Someone";
@@ -64,7 +78,7 @@ function TypingIndicator() {
     return () => {
       active = false;
     };
-  }, [typingUserIds]);
+  }, [rawTypingUserIds, user?.uid]);
 
   // Guards
   if (!conversationId || !user) return null;
