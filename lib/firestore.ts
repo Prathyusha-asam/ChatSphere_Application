@@ -11,9 +11,18 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
-// =======================================================
-// Create User Profile
-// =======================================================
+/* =======================================================
+   TYPES ( ADDED – required for WhatsApp reply)
+======================================================= */
+export interface ReplyPayload {
+  id: string;
+  text: string;
+  senderId?: string;
+}
+
+/* =======================================================
+   Create User Profile
+======================================================= */
 export async function createUserProfile(
   userId: string,
   email: string,
@@ -37,9 +46,9 @@ export async function createUserProfile(
   }
 }
 
-// =======================================================
-// Get User Profile
-// =======================================================
+/* =======================================================
+   Get User Profile
+======================================================= */
 export async function getUserProfile(
   userId: string
 ): Promise<DocumentData | null> {
@@ -57,9 +66,9 @@ export async function getUserProfile(
   }
 }
 
-// =======================================================
-// Emoji Reaction (per message)
-// =======================================================
+/* =======================================================
+   Emoji Reaction (per message)
+======================================================= */
 export async function toggleReaction(
   messageId: string,
   emoji: string,
@@ -72,9 +81,9 @@ export async function toggleReaction(
   });
 }
 
-// =======================================================
-// Star Message (per user)
-// =======================================================
+/* =======================================================
+   Star Message (per user)
+======================================================= */
 export async function toggleStar(
   messageId: string,
   userId: string
@@ -84,9 +93,9 @@ export async function toggleStar(
   });
 }
 
-// =======================================================
-// Update User Profile
-// =======================================================
+/* =======================================================
+   Update User Profile
+======================================================= */
 export async function updateUserProfile(
   userId: string,
   data: {
@@ -113,18 +122,14 @@ export async function updateUserProfile(
   }
 }
 
-// =======================================================
-// Send Message (supports reply)
-// =======================================================
+/* =======================================================
+   Send Message (supports WhatsApp-style reply)
+======================================================= */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
   text: string,
-  replyTo?: {
-    id: string;
-    text: string;
-    senderId?: string;
-  } | null
+  replyTo?: ReplyPayload | null
 ) {
   const msg = text?.trim();
   if (!msg) return;
@@ -133,7 +138,10 @@ export async function sendMessage(
     conversationId,
     senderId,
     text: msg,
+
+    //  REQUIRED FOR WHATSAPP REPLY
     replyTo: replyTo ?? null,
+
     createdAt: serverTimestamp(),
   });
 

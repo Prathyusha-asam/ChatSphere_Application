@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
+import type { ChangeEvent } from "react";
 import { auth } from "@/lib/firebase";
 import { setTypingStatus } from "@/lib/typing";
 import { useChat } from "@/hooks/useChat";
@@ -12,40 +13,42 @@ export default function MessageInput() {
     currentConversation,
     sendMessage,
     loading,
-    replyTo,
     editMessage,
     clearComposerState,
   } = useChat();
 
-  /* ✅ Initialize state ONCE per edit session */
+  /* 
+     State initialized ONCE per edit via remount */
   const [text, setText] = useState(editMessage?.text ?? "");
   const [showEmoji, setShowEmoji] = useState(false);
 
-  const emojiRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const isTypingRef = useRef(false);
 
-  /* Typing indicator (valid effect) */
-  useEffect(() => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setText(value);
+
     if (!auth.currentUser || !currentConversation) return;
 
-    setTypingStatus(
-      currentConversation.id,
-      auth.currentUser.uid,
-      !!text
-    );
-  }, [text, currentConversation]);
+    const typingNow = value.length > 0;
+    if (isTypingRef.current !== typingNow) {
+      isTypingRef.current = typingNow;
+      setTypingStatus(currentConversation.id, auth.currentUser.uid, typingNow);
+    }
+  };
 
   const handleSend = async () => {
     if (!text.trim() || !currentConversation) return;
 
     await sendMessage(text);
-    setText("");
 
-    setTypingStatus(
-      currentConversation.id,
-      auth.currentUser!.uid,
-      false
-    );
+    setText("");
+    clearComposerState();
+
+    if (auth.currentUser) {
+      isTypingRef.current = false;
+      setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
+    }
   };
 
   if (!currentConversation) return null;
@@ -53,31 +56,18 @@ export default function MessageInput() {
   return (
     <div
       className="relative"
-      /* 🔑 THIS IS THE MAGIC */
+      /*  THIS IS THE KEY FIX */
       key={editMessage?.id ?? "new-message"}
     >
-      {(replyTo || editMessage) && (
-        <div className="mb-2 flex items-center justify-between
-                        rounded-lg bg-gray-100 px-3 py-2 text-xs">
-          <div className="truncate">
-            {editMessage ? (
-              <span className="font-medium text-gray-700">
-                Editing message
-              </span>
-            ) : (
-              <>
-                <span className="font-medium text-gray-700">
-                  Replying to:
-                </span>{" "}
-                <span className="italic text-gray-600">
-                  {replyTo?.text}
-                </span>
-              </>
-            )}
-          </div>
-
+      {/* Edit indicator (NO preview text like WhatsApp) */}
+      {editMessage && (
+        <div className="mb-2 flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2 text-xs">
+          <span className="font-medium text-gray-700">Editing message</span>
           <button
-            onClick={clearComposerState}
+            onClick={() => {
+              setText("");
+              clearComposerState();
+            }}
             className="text-gray-500 hover:text-gray-700"
           >
             ✕
@@ -87,7 +77,6 @@ export default function MessageInput() {
 
       <div className="flex items-center gap-2">
         <button
-          ref={buttonRef}
           type="button"
           onClick={() => setShowEmoji((p) => !p)}
           className="flex h-10 w-10 items-center justify-center rounded-full
@@ -97,23 +86,19 @@ export default function MessageInput() {
         </button>
 
         {showEmoji && (
-          <div
-            ref={emojiRef}
-            className="absolute bottom-full left-0 mb-2 z-50"
-          >
+          <div className="absolute bottom-full left-0 mb-2 z-50">
             <EmojiPicker
-              onEmojiClick={(e) =>
-                setText((prev) => prev + e.emoji)
-              }
+              onEmojiClick={(e) => setText((prev) => prev + e.emoji)}
             />
           </div>
         )}
 
+        {/*  ORIGINAL MESSAGE IS HERE */}
         <input
           type="text"
-          placeholder={editMessage ? "Edit message…" : "Message"}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          placeholder={editMessage ? "Edit message…" : "Message"}
+          onChange={handleChange}
           className="flex-1 rounded-full border border-gray-300 bg-white
                      px-4 py-2 text-sm text-gray-900
                      focus:outline-none focus:ring-2 focus:ring-gray-900/20"

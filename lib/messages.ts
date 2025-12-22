@@ -14,8 +14,8 @@ import {
 import { db } from "./firebase";
 
 /* =========================================================
-   SEND MESSAGE (EXISTING BEHAVIOR)
-   ========================================================= */
+   SEND MESSAGE (UNCHANGED)
+========================================================= */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
@@ -44,26 +44,32 @@ export async function sendMessage(
 }
 
 /* =========================================================
-   UPDATE MESSAGE (EDIT FEATURE)
-   ========================================================= */
+   UPDATE MESSAGE (EDIT)  FIXED
+========================================================= */
 export async function updateMessage(
   conversationId: string,
   messageId: string,
   text: string
 ) {
+  const msg = text.trim();
+  if (!msg) return;
+
+  /* 🔧 1. Update message text + editedAt */
   await updateDoc(doc(db, "messages", messageId), {
-    text,
-    editedAt: serverTimestamp(),
+    text: msg,
+    editedAt: serverTimestamp(), 
   });
 
+  /* 🔧 2. Keep conversation metadata consistent */
   await updateDoc(doc(db, "conversations", conversationId), {
-    lastMessage: text,
+    lastMessage: msg,
+    lastMessageAt: serverTimestamp(),
   });
 }
 
 /* =========================================================
    DELETE MESSAGE (UNCHANGED)
-   ========================================================= */
+========================================================= */
 export async function deleteMessage(
   conversationId: string,
   messageId: string

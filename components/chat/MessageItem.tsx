@@ -38,11 +38,7 @@ export default function MessageItem({
 }: MessageItemProps) {
   const isMine = senderId === auth.currentUser?.uid;
 
-  const {
-    currentConversation,
-    setReplyTo,
-    setEditMessage,
-  } = useChat();
+  const { currentConversation, setReplyTo, setEditMessage } = useChat();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -94,7 +90,10 @@ export default function MessageItem({
 
   /* ---------- Edit ---------- */
   const handleEdit = () => {
-    setEditMessage({ id, text });
+    setEditMessage({
+      id,
+      text, // guaranteed message text
+    });
     setMenuOpen(false);
   };
 
@@ -102,34 +101,48 @@ export default function MessageItem({
     <>
       {/* Message bubble */}
       <div
+        id={`message-${id}`}
         onContextMenu={handleContextMenu}
         className={`flex flex-col max-w-[75%] cursor-pointer
-          ${isMine ? "ml-auto items-end" : "mr-auto items-start"}`}
+    ${isMine ? "ml-auto items-end" : "mr-auto items-start"}`}
       >
         {!isMine && senderName && (
-          <span className="mb-1 text-xs text-gray-500">
-            {senderName}
-          </span>
+          <span className="mb-1 text-xs text-gray-500">{senderName}</span>
         )}
 
         <div
-          className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
-            ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
+          className={`px-4 py-2 rounded-2xl text-sm leading-relaxed space-y-1
+    ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
         >
-          {/* Reply preview */}
-          {replyTo && (
-            <div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
-              Replying to: <span className="italic">{replyTo.text}</span>
+          {/* WhatsApp-style quoted reply */}
+          {replyTo && !editedAt && (
+            <div
+              onClick={() => {
+                const el = document.getElementById(`message-${replyTo.id}`);
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                el?.classList.add("ring-2", "ring-gray-400");
+                setTimeout(() => {
+                  el?.classList.remove("ring-2", "ring-gray-400");
+                }, 700);
+              }}
+              className={`flex gap-2 rounded-md px-2 py-1 text-xs cursor-pointer
+      ${isMine ? "bg-gray-800 text-gray-300" : "bg-gray-200 text-gray-600"}`}
+            >
+              <div className="w-1 rounded bg-gray-400" />
+
+              <div className="truncate">
+                <div className="font-medium truncate">You</div>
+                <div className="italic truncate">{replyTo.text}</div>
+              </div>
             </div>
           )}
 
-          {text}
+          {/*  Typed message MUST be BELOW quote */}
+          <div className="whitespace-pre-wrap">{text}</div>
 
-          {/* Edited label */}
           {editedAt && (
-            <span className="ml-1 text-[10px] text-gray-400">
-              (edited)
-            </span>
+            <span className="text-[10px] text-gray-400">(edited)</span>
           )}
         </div>
 
@@ -153,18 +166,12 @@ export default function MessageItem({
         >
           <MenuItem label="Reply" onClick={handleReply} />
 
-          {isMine && (
-            <MenuItem label="Edit" onClick={handleEdit} />
-          )}
+          {isMine && <MenuItem label="Edit" onClick={handleEdit} />}
 
           {isMine && (
             <>
               <div className="my-1 h-px bg-gray-200" />
-              <MenuItem
-                label="Delete"
-                danger
-                onClick={handleDelete}
-              />
+              <MenuItem label="Delete" danger onClick={handleDelete} />
             </>
           )}
         </div>

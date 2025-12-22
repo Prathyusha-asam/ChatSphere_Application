@@ -18,12 +18,12 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { sendMessage as sendMessageToDb } from "@/lib/sendMessage";
+import { sendMessage as sendMessageToDb } from "@/lib/firestore";
 import { updateMessage } from "@/lib/messages";
 
 /* =========================================================
    TYPES
-   ========================================================= */
+========================================================= */
 
 export interface Message {
   id: string;
@@ -35,7 +35,7 @@ export interface Message {
     id: string;
     text: string;
     senderId?: string;
-  };
+  } | null;
 }
 
 export interface Conversation {
@@ -44,7 +44,6 @@ export interface Conversation {
 }
 
 export interface ChatContextType {
-  /* ---------- CORE ---------- */
   messages: Message[];
   currentConversation: Conversation | null;
   loading: boolean;
@@ -54,11 +53,10 @@ export interface ChatContextType {
   sendMessage: (text: string) => Promise<void>;
   clearConversation: () => void;
 
-  /* ---------- COMPOSER STATE ---------- */
   replyTo: {
     id: string;
     text: string;
-    senderId: string;
+    senderId?: string;
   } | null;
 
   editMessage: {
@@ -77,27 +75,25 @@ export const ChatContext = createContext<ChatContextType | undefined>(
 
 /* =========================================================
    PROVIDER
-   ========================================================= */
+========================================================= */
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
-  /* ---------- STATE ---------- */
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [replyTo, setReplyTo] =
-    useState<ChatContextType["replyTo"]>(null);
+  const [replyTo, setReplyTo] = useState<ChatContextType["replyTo"]>(null);
 
   const [editMessage, setEditMessage] =
     useState<ChatContextType["editMessage"]>(null);
 
   /* =========================================================
      LISTEN FOR MESSAGES
-     ========================================================= */
+========================================================= */
 
   useEffect(() => {
     if (!currentConversation) return;
@@ -133,7 +129,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   /* =========================================================
      ACTIONS
-     ========================================================= */
+========================================================= */
 
   const startConversation = (conversation: Conversation) => {
     setCurrentConversation((prev) =>
@@ -146,24 +142,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const sendMessage = async (text: string) => {
     if (!user || !currentConversation) return;
 
-    // ✏️ Edit existing message
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    /*  EDIT MESSAGE (WhatsApp-style) */
+    /*  EDIT MESSAGE */
     if (editMessage) {
       await updateMessage(
-        currentConversation.id,
+        currentConversation.id, //  FIX
         editMessage.id,
-        text
+        trimmed
       );
+
       clearComposerState();
       return;
     }
 
-    // 📩 Send new message
-    await sendMessageToDb(
-      currentConversation.id,
-      user.uid,
-      text,
-      replyTo
-    );
+    /* NEW MESSAGE (with reply support) */
+    await sendMessageToDb(currentConversation.id, user.uid, trimmed, replyTo);
 
     clearComposerState();
   };
@@ -178,10 +174,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setReplyTo(null);
     setEditMessage(null);
   };
-
-  /* =========================================================
-     PROVIDER VALUE
-     ========================================================= */
 
   return (
     <ChatContext.Provider
@@ -207,7 +199,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
 /* =========================================================
    SAFE HOOK
-   ========================================================= */
+========================================================= */
 
 export function useChat(): ChatContextType {
   const ctx = useContext(ChatContext);

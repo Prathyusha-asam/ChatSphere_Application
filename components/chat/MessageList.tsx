@@ -28,7 +28,6 @@ export default function MessageList() {
     return name;
   };
 
-
   /* ---------- Loading skeletons (unchanged) ---------- */
   if (loading) {
     return (
@@ -44,9 +43,7 @@ export default function MessageList() {
   if (!messages.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-gray-400">
-          Start the conversation 👋
-        </p>
+        <p className="text-sm text-gray-400">Start the conversation 👋</p>
       </div>
     );
   }
@@ -68,11 +65,7 @@ export default function MessageList() {
 /* =========================================================
    Async message wrapper (logic unchanged, safely extended)
    ========================================================= */
-function AsyncMessage({
-  message,
-  showSender,
-  getSenderName,
-}: any) {
+function AsyncMessage({ message, showSender, getSenderName }: any) {
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -83,7 +76,6 @@ function AsyncMessage({
     getSenderName(message.senderId).then((n: string) => {
       if (mounted) setName(n);
     });
-
 
     return () => {
       mounted = false;

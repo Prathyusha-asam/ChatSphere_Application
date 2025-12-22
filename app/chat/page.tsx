@@ -15,7 +15,7 @@ import TypingIndicator from "@/components/chat/TypingIndicator";
 export default function ChatPage() {
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("cid");
-  const { startConversation } = useChat();
+  const { startConversation, editMessage } = useChat();
 
   useEffect(() => {
     if (conversationId) {
@@ -29,7 +29,6 @@ export default function ChatPage() {
   return (
     <AuthGuard>
       <div className="flex h-[calc(100vh-72px)] bg-gray-50">
-
         {/* LEFT SIDEBAR */}
         <div className="w-80 border-r border-gray-200 bg-white">
           <ConversationList />
@@ -37,7 +36,6 @@ export default function ChatPage() {
 
         {/* RIGHT CHAT AREA */}
         <div className="flex flex-1 flex-col bg-white">
-
           {/* Empty State */}
           {!conversationId && (
             <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
@@ -65,7 +63,7 @@ export default function ChatPage() {
 
               {/* Input */}
               <div className="border-t border-gray-200 px-4 py-3 bg-white">
-                <MessageInput />
+                <MessageInput key={editMessage?.id ?? "new-message"} />
               </div>
             </>
           )}
