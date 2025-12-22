@@ -10,7 +10,12 @@ import { db } from "./firebase";
 export async function sendMessage(
   conversationId: string,
   senderId: string,
-  text: string
+  text: string,
+  replyTo?: {
+    id: string;
+    text: string;
+    senderId?: string;
+  } | null
 ) {
   const msg = text?.trim();
   if (!msg) return;

@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
   createContext,
-  useContext,
   useEffect,
   useState,
   ReactNode,
+  useContext,
 } from "react";
 import {
   collection,
@@ -19,12 +19,23 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { sendMessage as sendMessageToDb } from "@/lib/sendMessage";
+import { updateMessage } from "@/lib/messages";
+
+/* =========================================================
+   TYPES
+   ========================================================= */
 
 export interface Message {
   id: string;
   senderId: string;
   text: string;
   createdAt: any;
+  editedAt?: any;
+  replyTo?: {
+    id: string;
+    text: string;
+    senderId?: string;
+  };
 }
 
 export interface Conversation {
@@ -33,30 +44,66 @@ export interface Conversation {
 }
 
 export interface ChatContextType {
+  /* ---------- CORE ---------- */
   messages: Message[];
   currentConversation: Conversation | null;
   loading: boolean;
+  error: string | null;
+
   startConversation: (conversation: Conversation) => void;
   sendMessage: (text: string) => Promise<void>;
   clearConversation: () => void;
+
+  /* ---------- COMPOSER STATE ---------- */
+  replyTo: {
+    id: string;
+    text: string;
+    senderId: string;
+  } | null;
+
+  editMessage: {
+    id: string;
+    text: string;
+  } | null;
+
+  setReplyTo: (msg: ChatContextType["replyTo"]) => void;
+  setEditMessage: (msg: ChatContextType["editMessage"]) => void;
+  clearComposerState: () => void;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(
   undefined
 );
 
+/* =========================================================
+   PROVIDER
+   ========================================================= */
+
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
+  /* ---------- STATE ---------- */
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [replyTo, setReplyTo] =
+    useState<ChatContextType["replyTo"]>(null);
+
+  const [editMessage, setEditMessage] =
+    useState<ChatContextType["editMessage"]>(null);
+
+  /* =========================================================
+     LISTEN FOR MESSAGES
+     ========================================================= */
 
   useEffect(() => {
     if (!currentConversation) return;
 
     setLoading(true);
+    setError(null);
 
     const q = query(
       collection(db, "messages"),
@@ -64,38 +111,77 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       orderBy("createdAt", "asc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Message, "id">),
-      }));
-      setMessages(list);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs: Message[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        }));
+
+        setMessages(msgs);
+        setLoading(false);
+      },
+      () => {
+        setError("Failed to load messages");
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [currentConversation]);
+
+  /* =========================================================
+     ACTIONS
+     ========================================================= */
 
   const startConversation = (conversation: Conversation) => {
     setCurrentConversation((prev) =>
       prev?.id === conversation.id ? prev : conversation
     );
     setMessages([]);
+    clearComposerState();
   };
 
   const sendMessage = async (text: string) => {
     if (!user || !currentConversation) return;
+
+    // ✏️ Edit existing message
+    if (editMessage) {
+      await updateMessage(
+        currentConversation.id,
+        editMessage.id,
+        text
+      );
+      clearComposerState();
+      return;
+    }
+
+    // 📩 Send new message
     await sendMessageToDb(
       currentConversation.id,
       user.uid,
-      text
+      text,
+      replyTo
     );
+
+    clearComposerState();
   };
 
   const clearConversation = () => {
     setCurrentConversation(null);
     setMessages([]);
+    clearComposerState();
   };
+
+  const clearComposerState = () => {
+    setReplyTo(null);
+    setEditMessage(null);
+  };
+
+  /* =========================================================
+     PROVIDER VALUE
+     ========================================================= */
 
   return (
     <ChatContext.Provider
@@ -103,9 +189,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         messages,
         currentConversation,
         loading,
+        error,
         startConversation,
         sendMessage,
         clearConversation,
+        replyTo,
+        editMessage,
+        setReplyTo,
+        setEditMessage,
+        clearComposerState,
       }}
     >
       {children}
@@ -113,7 +205,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useChat() {
+/* =========================================================
+   SAFE HOOK
+   ========================================================= */
+
+export function useChat(): ChatContextType {
   const ctx = useContext(ChatContext);
   if (!ctx) {
     throw new Error("useChat must be used inside ChatProvider");

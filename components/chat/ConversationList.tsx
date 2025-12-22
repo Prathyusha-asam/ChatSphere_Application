@@ -16,7 +16,6 @@ import { getUserProfile } from "@/lib/firestore";
 import StartConversation from "./StartConversation";
 import ConversationSkeleton from "@/components/skeletons/ConversationsSkeleton";
 
-
 interface ConversationItem {
     id: string;
     participants: string[];
@@ -36,45 +35,39 @@ export default function ConversationList() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const activeCid = searchParams.get("cid");
-     const [loading, setLoading] = useState(true); // ✅ HERE
-    const [conversations, setConversations] = useState<
-        ConversationItem[]
-    >([]);
-    const [profiles, setProfiles] = useState<
-        Record<string, UserProfile>
-    >({});
+
+    const [loading, setLoading] = useState(true);
+    const [conversations, setConversations] = useState<ConversationItem[]>([]);
+    const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
     const [search, setSearch] = useState("");
     const [open, setOpen] = useState(false);
 
-   useEffect(() => {
-    if (!user) return;
+    /* ---------- Fetch conversations ---------- */
+    useEffect(() => {
+        if (!user) return;
 
-    setLoading(true); // ✅ ADD
+        const q = query(
+            collection(db, "conversations"),
+            where("participants", "array-contains", user.uid),
+            orderBy("lastMessageAt", "desc")
+        );
 
-    const q = query(
-        collection(db, "conversations"),
-        where("participants", "array-contains", user.uid),
-        orderBy("lastMessageAt", "desc")
-    );
+        const unsubscribe = onSnapshot(q, (snap) => {
+            const list = snap.docs
+                .map((d) => ({ id: d.id, ...(d.data() as any) }))
+                .filter((c) => c.lastMessage && c.lastMessage.trim() !== "");
 
-    const unsubscribe = onSnapshot(q, (snap) => {
-        const list = snap.docs
-            .map(d => ({ id: d.id, ...(d.data() as any) }))
-            .filter(c => c.lastMessage && c.lastMessage.trim() !== "");
+            setConversations(list);
+            setLoading(false); // ✅ safe: inside external callback
+        });
 
-        setConversations(list);
-        setLoading(false); // ✅ ADD
-    });
+        return () => unsubscribe();
+    }, [user]);
 
-    return () => unsubscribe();
-}, [user]);
-
-
+    /* ---------- Fetch user profiles ---------- */
     useEffect(() => {
         conversations.forEach(async (c) => {
-            const otherId = c.participants.find(
-                (p) => p !== user?.uid
-            );
+            const otherId = c.participants.find((p) => p !== user?.uid);
             if (!otherId || profiles[otherId]) return;
 
             const data = await getUserProfile(otherId);
@@ -90,18 +83,20 @@ export default function ConversationList() {
         });
     }, [conversations]);
 
+    /* ---------- Empty state ---------- */
     if (!loading && !conversations.length) {
         return (
-            <div className="flex flex-col flex-1 items-center justify-center">
-                <p className="text-gray-400 mb-4">
+            <div className="flex flex-col flex-1 items-center justify-center text-center px-4">
+                <p className="text-sm text-gray-500 mb-4">
                     No conversations yet
                 </p>
                 <button
                     onClick={() => setOpen(true)}
-                    className="bg-purple-600 text-white px-4 py-2 rounded"
+                    className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition"
                 >
-                    Start New Chat
+                    Start new chat
                 </button>
+
                 {open && (
                     <StartConversation onClose={() => setOpen(false)} />
                 )}
@@ -110,79 +105,92 @@ export default function ConversationList() {
     }
 
     return (
-        <div className="w-80 border-r h-full flex flex-col">
-            <input
-                placeholder="Search"
-                className="m-3 p-2 border rounded"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-            />
+        <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
 
-            <div className="flex-1 overflow-y-auto">
-    {loading &&
-        Array.from({ length: 5 }).map((_, i) => (
-            <ConversationSkeleton key={i} />
-        ))}
-
-    {!loading &&
-        conversations.map((c) => {
-
-                    const otherId =
-                        c.participants.find((p) => p !== user?.uid) ||
-                        "";
-                    const profile = profiles[otherId];
-
-                    if (
-                        search &&
-                        profile &&
-                        !profile.displayName
-                            .toLowerCase()
-                            .includes(search.toLowerCase())
-                    ) {
-                        return null;
-                    }
-
-                    return (
-                        <div
-                            key={c.id}
-                            onClick={() =>
-                                router.push(`/chat?cid=${c.id}`)
-                            }
-                            className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b ${c.id === activeCid
-                                ? "bg-purple-100"
-                                : "hover:bg-gray-100"
-                                }`}
-                        >
-                            {profile?.photoURL ? (
-                                <img
-                                    src={profile.photoURL}
-                                    className="w-10 h-10 rounded-full"
-                                />
-                            ) : (
-                                <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center">
-                                    {profile?.displayName?.[0] || "?"}
-                                </div>
-                            )}
-
-                            <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm truncate">
-                                    {profile?.displayName || "Loading"}
-                                </div>
-                                <div className="text-xs text-gray-500 truncate">
-                                    {c.lastMessage || "No messages yet"}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
+            {/* Search */}
+            <div className="p-3">
+                <input
+                    placeholder="Search"
+                    className="w-full rounded-lg border border-gray-300 bg-white
+                     px-3 py-2 text-sm text-gray-900
+                     placeholder-gray-400
+                     focus:outline-none focus:ring-2 focus:ring-gray-900/20"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
             </div>
 
-            <button
-                onClick={() => setOpen(true)}
-                className="m-3 bg-purple-600 text-white py-2 rounded"
-            >
-                + New Chat
-            </button>
+            {/* Conversation List */}
+            <div className="flex-1 overflow-y-auto hide-scrollbar">
+                {loading &&
+                    Array.from({ length: 5 }).map((_, i) => (
+                        <ConversationSkeleton key={i} />
+                    ))}
+
+                {!loading &&
+                    conversations.map((c) => {
+                        const otherId =
+                            c.participants.find((p) => p !== user?.uid) || "";
+                        const profile = profiles[otherId];
+
+                        if (
+                            search &&
+                            profile &&
+                            !profile.displayName
+                                .toLowerCase()
+                                .includes(search.toLowerCase())
+                        ) {
+                            return null;
+                        }
+
+                        return (
+                            <div
+                                key={c.id}
+                                onClick={() => router.push(`/chat?cid=${c.id}`)}
+                                className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
+                  ${c.id === activeCid
+                                        ? "bg-gray-100"
+                                        : "hover:bg-gray-50"
+                                    }`}
+                            >
+                                {/* Avatar */}
+                                {profile?.photoURL ? (
+                                    <img
+                                        src={profile.photoURL}
+                                        className="w-9 h-9 rounded-full object-cover"
+                                        alt="Avatar"
+                                    />
+                                ) : (
+                                    <div className="w-9 h-9 rounded-full bg-gray-900 text-white
+                                  flex items-center justify-center text-sm font-medium">
+                                        {profile?.displayName?.[0]?.toUpperCase() || "?"}
+                                    </div>
+                                )}
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-gray-900 truncate">
+                                        {profile?.displayName || "Loading"}
+                                    </div>
+                                    <div className="text-xs text-gray-500 truncate">
+                                        {c.lastMessage || "No messages yet"}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+            </div>
+
+            {/* New Chat Button */}
+            <div className="p-3 border-t border-gray-200">
+                <button
+                    onClick={() => setOpen(true)}
+                    className="w-full rounded-lg bg-black py-2 text-sm font-medium
+                     text-white hover:bg-gray-800 transition"
+                >
+                    + New chat
+                </button>
+            </div>
 
             {open && (
                 <StartConversation onClose={() => setOpen(false)} />

@@ -1,61 +1,66 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useState, memo } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useChat } from "@/hooks/useChat";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useChat } from "@/hooks/useChat";
+import { memo, useEffect, useState } from "react";
 import { getUserProfile } from "@/lib/firestore";
 
+/**
+ * Displays typing indicator with user name(s)
+ */
 function TypingIndicator() {
   const { user } = useAuth();
   const { currentConversation } = useChat();
 
-  const conversationId = currentConversation?.id;
+  const conversationId = currentConversation?.id || "";
 
   const typingUserIds = useTypingIndicator(
     conversationId,
-    user?.uid
+    user?.uid || ""
   );
 
-  const [names, setNames] = useState<string[]>([]);
+  const [typingNames, setTypingNames] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!typingUserIds.length) {
-      setNames([]);
-      return;
-    }
-
     let active = true;
 
-    Promise.all(
-      typingUserIds.map(async (uid) => {
-        const profile = await getUserProfile(uid);
-        return profile?.displayName || "Someone";
-      })
-    ).then((resolved) => {
-      if (active) setNames(resolved);
-    });
+    async function loadTypingUsers() {
+      if (!typingUserIds.length) {
+        setTypingNames([]);
+        return;
+      }
+
+      const names = await Promise.all(
+        typingUserIds.map(async (uid: string) => {
+          const profile = await getUserProfile(uid);
+          return profile?.displayName || "Unknown";
+        })
+      );
+
+      if (active) {
+        setTypingNames(names);
+      }
+    }
+
+    loadTypingUsers();
 
     return () => {
       active = false;
     };
   }, [typingUserIds]);
 
-  if (
-    !conversationId ||
-    !user ||
-    names.length === 0
-  ) {
+  // ✅ Correct guards
+  if (!conversationId || !user || typingNames.length === 0) {
     return null;
   }
 
   return (
-    <p className="text-sm text-gray-500 italic px-4 pb-2">
-      {names.length === 1
-        ? `${names[0]} is typing...`
-        : `${names.join(", ")} are typing...`}
-    </p>
+    <div className="px-6 pb-2 text-xs text-gray-500 select-none">
+      {typingNames.length === 1
+        ? `${typingNames[0]} is typing…`
+        : `${typingNames.join(", ")} are typing…`}
+    </div>
   );
 }
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import MessageSkeleton from "@/components/skeletons/MessageSkeleton";
 
+import MessageSkeleton from "@/components/skeletons/MessageSkeleton";
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
@@ -10,41 +10,49 @@ import { getUserProfile } from "@/lib/firestore";
 export default function MessageList() {
   const { messages, loading } = useChat();
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const nameCache = useRef<Record<string, string>>({});
+  const userCache = useRef<Record<string, string>>({});
 
+  /* ---------- Auto scroll to bottom (unchanged behavior) ---------- */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Load sender names (cached)
   const getSenderName = async (uid: string) => {
-    if (nameCache.current[uid]) return nameCache.current[uid];
+    if (userCache.current[uid]) return userCache.current[uid];
+
     const profile = await getUserProfile(uid);
     const name = profile?.displayName || "Unknown";
-    nameCache.current[uid] = name;
+
+    userCache.current[uid] = name;
     return name;
   };
 
+
+  /* ---------- Loading skeletons (unchanged) ---------- */
   if (loading) {
-  return (
-    <div className="p-4 space-y-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <MessageSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
+    return (
+      <div className="px-6 py-4 space-y-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <MessageSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
 
-
+  /* ---------- Empty state (unchanged) ---------- */
   if (!messages.length) {
     return (
-      <p className="text-gray-400 text-center mt-10">
-        Say Hello 👋
-      </p>
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-sm text-gray-400">
+          Start the conversation 👋
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="px-6 py-4 space-y-4">
       {messages.map((msg) => (
         <AsyncMessage
           key={msg.id}
@@ -57,20 +65,30 @@ export default function MessageList() {
   );
 }
 
+/* =========================================================
+   Async message wrapper (logic unchanged, safely extended)
+   ========================================================= */
 function AsyncMessage({
   message,
+  showSender,
   getSenderName,
-}: {
-  message: any;
-  getSenderName: (uid: string) => Promise<string>;
-}) {
+}: any) {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    if (message?.senderId) {
-      getSenderName(message.senderId).then(setName);
-    }
-  }, [message?.senderId]);
+    if (!message?.senderId) return;
+
+    let mounted = true;
+
+    getSenderName(message.senderId).then((n: string) => {
+      if (mounted) setName(n);
+    });
+
+
+    return () => {
+      mounted = false;
+    };
+  }, [message?.senderId, getSenderName]);
 
   return (
     <MessageItem
@@ -79,6 +97,8 @@ function AsyncMessage({
       senderId={message.senderId}
       senderName={name}
       createdAt={message.createdAt}
+      editedAt={message.editedAt}
+      replyTo={message.replyTo}
     />
   );
 }
