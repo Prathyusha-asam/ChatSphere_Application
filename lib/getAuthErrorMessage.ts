@@ -3,14 +3,19 @@ export function getAuthErrorMessage(error: unknown): string {
     return "Unexpected error occurred. Please try again.";
   }
 
+  const errorCode = (error as any).code || "";
   const message = error.message.toLowerCase();
 
-  if (message.includes("user-not-found")) return "No account found with this email.";
-  if (message.includes("wrong-password")) return "Incorrect email or password.";
-  if (message.includes("invalid-email")) return "Please enter a valid email address.";
-  if (message.includes("network")) return "Network issue. Check your connection.";
-  if (message.includes("too-many-requests"))
+  if (errorCode.includes("invalid-email") || message.includes("invalid-email")) 
+    return "Invalid email.";
+  if (errorCode.includes("wrong-password") || message.includes("wrong-password")) 
+    return "Invalid password.";
+  if (errorCode.includes("user-not-found") || message.includes("user-not-found")) 
+    return "Invalid email.";
+  if (errorCode.includes("network-request-failed") || message.includes("network")) 
+    return "Network issue. Check your connection.";
+  if (errorCode.includes("too-many-requests") || message.includes("too-many-requests"))
     return "Too many attempts. Please try again later.";
 
-  return "Something went wrong. Please try again.";
+  return "Invalid  password.";
 }

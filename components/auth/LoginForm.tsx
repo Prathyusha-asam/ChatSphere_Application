@@ -72,7 +72,11 @@ export default function LoginForm() {
         Sign in
       </h2>
 
-      {error && <p className="mb-4 text-sm text-red-600 text-center">{error}</p>}
+      {error && (
+        <p className="mb-4 text-sm text-red-600 text-center">
+          {error}
+        </p>
+      )}
 
       {/* Email */}
       <div className="relative mb-5">
@@ -155,19 +159,6 @@ export default function LoginForm() {
           Sign up
         </button>
       </p>
-      {error && (
-        <div className="mb-4 text-center">
-          <p className="text-sm text-red-600">{error}</p>
-          <button
-            type="button"
-            onClick={handleSubmit as any}
-            className="mt-1 text-sm underline"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
     </form>
   );
 }

@@ -109,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
       await signInWithEmailAndPassword(auth, email, password);
-    } catch {
-      setError("Invalid email or password");
+    } catch (err) {
+      throw err;
     } finally {
       setLoading(false);
     }
