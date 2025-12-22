@@ -6,6 +6,7 @@ import { setTypingStatus } from "@/lib/typing";
 import { useChat } from "@/hooks/useChat";
 import EmojiPicker from "emoji-picker-react";
 import LoadingSpinner from "../ui/LoadingSpinner";
+import Image from "next/image";
 
 const MAX_CHARS = 500;
 
@@ -164,7 +165,12 @@ export default function MessageInput() {
           className="flex h-10 w-10 items-center justify-center rounded-full
                      text-gray-600 hover:bg-gray-100 transition"
         >
-          🙂
+          <Image
+            src="/images/smiley.svg"
+            alt="Emoji"
+            width={22}
+            height={22}
+          />
         </button>
 
         {showEmoji && (

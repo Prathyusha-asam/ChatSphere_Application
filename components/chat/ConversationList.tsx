@@ -9,8 +9,6 @@ import {
   where,
   orderBy,
   onSnapshot,
-  QuerySnapshot,
-  DocumentData,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +16,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getUserProfile } from "@/lib/firestore";
 import StartConversation from "./StartConversation";
 import ConversationSkeleton from "@/components/skeletons/ConversationsSkeleton";
+import EmptyState from "@/components/ui/EmptyState";
 
 /* ---------- Types ---------- */
 interface ConversationItem {
@@ -46,8 +45,8 @@ export default function ConversationList() {
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
   /* ---------- Fetch conversations ---------- */
   useEffect(() => {
     if (!user) return;
@@ -63,12 +62,9 @@ export default function ConversationList() {
 
     const unsubscribe = onSnapshot(
       q,
-      (snap: QuerySnapshot<DocumentData>) => {
+      (snap) => {
         const list = snap.docs
-          .map((d) => ({
-            id: d.id,
-            ...(d.data() as any),
-          }))
+          .map((d) => ({ id: d.id, ...(d.data() as any) }))
           .filter((c) => c.lastMessage?.trim());
 
         setConversations(list);
@@ -83,37 +79,36 @@ export default function ConversationList() {
 
     return () => unsubscribe();
   }, [user]);
-  /* ================== ✅ UNREAD COUNT (NO INDEX VERSION) ================== */
-useEffect(() => {
-  if (!user || !conversations.length) return;
 
-  const unsubscribers: (() => void)[] = [];
+  /* ---------- Unread count ---------- */
+  useEffect(() => {
+    if (!user || !conversations.length) return;
 
-  conversations.forEach((conv) => {
-    const q = query(
-      collection(db, "messages"),
-      where("conversationId", "==", conv.id),
-      where("isRead", "==", false)
-    );
+    const unsubscribers: (() => void)[] = [];
 
-    const unsub = onSnapshot(q, (snap) => {
-      const unread = snap.docs.filter(
-        (d) => d.data().senderId !== user.uid
-      ).length;
+    conversations.forEach((conv) => {
+      const q = query(
+        collection(db, "messages"),
+        where("conversationId", "==", conv.id),
+        where("isRead", "==", false)
+      );
 
-      setUnreadCounts((prev) => ({
-        ...prev,
-        [conv.id]: unread,
-      }));
+      const unsub = onSnapshot(q, (snap) => {
+        const unread = snap.docs.filter(
+          (d) => d.data().senderId !== user.uid
+        ).length;
+
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [conv.id]: unread,
+        }));
+      });
+
+      unsubscribers.push(unsub);
     });
 
-    unsubscribers.push(unsub);
-  });
-
-  return () => {
-    unsubscribers.forEach((u) => u());
-  };
-}, [conversations, user]);
+    return () => unsubscribers.forEach((u) => u());
+  }, [conversations, user]);
 
   /* ---------- Fetch user profiles ---------- */
   useEffect(() => {
@@ -121,46 +116,33 @@ useEffect(() => {
       const otherId = c.participants.find((p) => p !== user?.uid);
       if (!otherId || profiles[otherId]) return;
 
-      try {
-        const data = await getUserProfile(otherId);
-        if (data) {
-          setProfiles((prev) => ({
-            ...prev,
-            [otherId]: {
-              displayName: data.displayName,
-              photoURL: data.photoURL,
-            },
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to load user profile:", err);
+      const data = await getUserProfile(otherId);
+      if (data) {
+        setProfiles((prev) => ({
+          ...prev,
+          [otherId]: {
+            displayName: data.displayName,
+            photoURL: data.photoURL,
+          },
+        }));
       }
     });
   }, [conversations, profiles, user]);
 
-  /* ---------- WhatsApp-style date formatter ---------- */
+  /* ---------- Date formatter ---------- */
   const formatDate = (date?: { toDate: () => Date } | null) => {
     if (!date) return "";
-
     const d = date.toDate();
     const now = new Date();
 
-    const isToday = d.toDateString() === now.toDateString();
+    if (d.toDateString() === now.toDateString()) {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
 
     const yesterday = new Date();
     yesterday.setDate(now.getDate() - 1);
 
-    const isYesterday = d.toDateString() === yesterday.toDateString();
-
-    if (isToday) {
-      return d.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }
-
-    if (isYesterday) return "Yesterday";
-
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
     return d.toLocaleDateString();
   };
 
@@ -171,7 +153,6 @@ useEffect(() => {
     return conversations.filter((c) => {
       const otherId = c.participants.find((p) => p !== user?.uid) || "";
       const profile = profiles[otherId];
-
       return (
         profile?.displayName
           ?.toLowerCase()
@@ -180,10 +161,8 @@ useEffect(() => {
     });
   }, [conversations, profiles, search, user?.uid]);
 
-  const handleOpenConversation = useCallback(
-    (id: string) => {
-      router.push(`/chat?cid=${id}`);
-    },
+  const openConversation = useCallback(
+    (id: string) => router.push(`/chat?cid=${id}`),
     [router]
   );
 
@@ -202,37 +181,33 @@ useEffect(() => {
   if (error) {
     return (
       <div className="w-80 flex flex-col items-center justify-center px-4 text-center">
-        <p className="text-sm text-red-600 mb-2">{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="text-sm underline"
-        >
-          Retry
-        </button>
+        <EmptyState
+          title="Something went wrong"
+          description={error}
+          icon="/images/error.svg"
+          actionLabel="Retry"
+          onAction={() => window.location.reload()}
+        />
       </div>
     );
   }
 
-  /* ---------- Empty state ---------- */
+  /* ---------- Empty: no conversations ---------- */
   if (!conversations.length) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center text-center px-4">
-        <p className="text-sm text-gray-500 mb-4">
-          No conversations yet
-        </p>
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition"
-        >
-          Start new chat
-        </button>
-
+      <div className="flex flex-1 items-center justify-center px-4">
+        <EmptyState
+          title="No conversations yet"
+          description="Start a new chat to begin messaging."
+          icon="/images/empty-chat.svg"
+          actionLabel="Start new chat"
+          onAction={() => setOpen(true)}
+        />
         {open && <StartConversation onClose={() => setOpen(false)} />}
       </div>
     );
   }
 
-  /* ---------- UI ---------- */
   return (
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
 
@@ -240,17 +215,27 @@ useEffect(() => {
       <div className="p-3">
         <input
           placeholder="Search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-lg border border-gray-300 bg-white
                      px-3 py-2 text-sm text-gray-900
                      placeholder-gray-400
                      focus:outline-none focus:ring-2 focus:ring-gray-900/20"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      {/* Conversation List */}
+      {/* List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar">
+
+        {/* Empty: search */}
+        {search && filteredConversations.length === 0 && (
+          <EmptyState
+            title="No results found"
+            description="Try a different name or clear your search."
+            icon="/images/empty-search.svg"
+          />
+        )}
+
         {filteredConversations.map((c) => {
           const otherId =
             c.participants.find((p) => p !== user?.uid) || "";
@@ -260,17 +245,15 @@ useEffect(() => {
           return (
             <div
               key={c.id}
-              onClick={() => handleOpenConversation(c.id)}
+              onClick={() => openConversation(c.id)}
               className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
                 ${c.id === activeCid ? "bg-gray-100" : "hover:bg-gray-50"}`}
             >
-              {/* Avatar */}
               {profile?.photoURL ? (
                 <img
                   src={profile.photoURL}
                   className="w-9 h-9 rounded-full object-cover"
                   alt="Avatar"
-                  loading="lazy"
                 />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-gray-900 text-white
@@ -279,7 +262,6 @@ useEffect(() => {
                 </div>
               )}
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-900 truncate">
@@ -291,15 +273,11 @@ useEffect(() => {
                       {formatDate(c.lastMessageAt)}
                     </span>
 
-                    {/* ✅ UNREAD BADGE */}
                     {unread > 0 && (
-                      <span
-                        className="min-w-[20px] h-5 px-1
-                                   flex items-center justify-center
-                                   rounded-full
-                                   bg-gray-900 text-white
-                                   text-xs font-medium"
-                      >
+                      <span className="min-w-[20px] h-5 px-1
+                                       flex items-center justify-center
+                                       rounded-full bg-gray-900 text-white
+                                       text-xs font-medium">
                         {unread}
                       </span>
                     )}
@@ -315,7 +293,7 @@ useEffect(() => {
         })}
       </div>
 
-      {/* New Chat Button */}
+      {/* New chat */}
       <div className="p-3 border-t border-gray-200">
         <button
           onClick={() => setOpen(true)}

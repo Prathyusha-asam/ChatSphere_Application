@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
 import { getUserProfile } from "@/lib/firestore";
+import EmptyState from "@/components/ui/EmptyState"; // ✅ added
 import React from "react";
 
 export default function MessageList() {
@@ -23,24 +24,18 @@ export default function MessageList() {
     prevCountRef.current = messages.length;
   }, [messages]);
 
-  /* ---------- Load sender names (cached + memoized) ---------- */
-  const getSenderName = useCallback(async (uid: string) => {
-    if (userCache.current[uid]) {
-      return userCache.current[uid];
-    }
+  // Load sender names (cached)
+  const getSenderName = async (uid: string) => {
+    if (userCache.current[uid]) return userCache.current[uid];
 
-    try {
-      const profile = await getUserProfile(uid);
-      const name = profile?.displayName || "Unknown";
-      userCache.current[uid] = name;
-      return name;
-    } catch (err) {
-      console.error("Failed to load sender name:", err);
-      return "Unknown";
-    }
-  }, []);
+    const profile = await getUserProfile(uid);
+    const name = profile?.displayName || "Unknown";
 
-  /* ---------- Loading skeletons ---------- */
+    userCache.current[uid] = name;
+    return name;
+  };
+
+  /* ---------- Loading skeletons (unchanged) ---------- */
   if (loading) {
     return (
       <div className="px-6 py-4 space-y-4">
@@ -55,9 +50,11 @@ export default function MessageList() {
   if (!messages.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-gray-400">
-          Start the conversation 👋
-        </p>
+        <EmptyState
+          title="No messages yet"
+          description="Start the conversation"
+          icon="/images/empty-state.svg"
+        />
       </div>
     );
   }

@@ -2,6 +2,7 @@
 
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { useState, useEffect } from "react";
+import EmptyState from "@/components/ui/EmptyState"; // ✅ added
 
 export default function UserPresence() {
   const users = useUserPresence();
@@ -42,10 +43,15 @@ export default function UserPresence() {
     (u) => u.id && u.displayName
   );
 
+  /* ---------- Empty state (ONLY CHANGE) ---------- */
   if (!safeUsers.length) {
     return (
-      <div className="border rounded p-4 mb-4 text-sm text-gray-500">
-        No active users
+      <div className="border rounded p-4 mb-4">
+        <EmptyState
+          title="No active users"
+          description="Users will appear here when they come online."
+          icon="/images/users-empty.svg"
+        />
       </div>
     );
   }
