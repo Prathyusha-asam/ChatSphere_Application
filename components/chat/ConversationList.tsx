@@ -180,7 +180,7 @@ export default function ConversationList() {
   /* ---------- Error ---------- */
   if (error) {
     return (
-      <div className="w-80 flex items-center justify-center px-4 text-center">
+      <div className="w-80 flex flex-col items-center justify-center px-4 text-center">
         <EmptyState
           title="Something went wrong"
           description={error}
@@ -192,7 +192,7 @@ export default function ConversationList() {
     );
   }
 
-  /* ---------- Empty ---------- */
+  /* ---------- Empty: no conversations ---------- */
   if (!conversations.length) {
     return (
       <div className="flex flex-1 items-center justify-center px-4">
@@ -210,22 +210,28 @@ export default function ConversationList() {
 
   return (
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
+
       {/* Search */}
       <div className="p-3">
         <input
           placeholder="Search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-gray-300 bg-white
+                     px-3 py-2 text-sm text-gray-900
+                     placeholder-gray-400
+                     focus:outline-none focus:ring-2 focus:ring-gray-900/20"
         />
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar">
+
+        {/* Empty: search */}
         {search && filteredConversations.length === 0 && (
           <EmptyState
             title="No results found"
-            description="Try a different name."
+            description="Try a different name or clear your search."
             icon="/images/empty-search.svg"
           />
         )}
@@ -240,7 +246,7 @@ export default function ConversationList() {
             <div
               key={c.id}
               onClick={() => openConversation(c.id)}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b
+              className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
                 ${c.id === activeCid ? "bg-gray-100" : "hover:bg-gray-50"}`}
             >
               {profile?.photoURL ? (
@@ -250,14 +256,15 @@ export default function ConversationList() {
                   alt="Avatar"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm">
+                <div className="w-9 h-9 rounded-full bg-gray-900 text-white
+                                flex items-center justify-center text-sm font-medium">
                   {profile?.displayName?.[0]?.toUpperCase() || "?"}
                 </div>
               )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium truncate">
+                  <span className="text-sm font-medium text-gray-900 truncate">
                     {profile?.displayName || "Loading"}
                   </span>
 
@@ -267,7 +274,10 @@ export default function ConversationList() {
                     </span>
 
                     {unread > 0 && (
-                      <span className="min-w-[20px] h-5 px-1 rounded-full bg-black text-white text-xs flex items-center justify-center">
+                      <span className="min-w-[20px] h-5 px-1
+                                       flex items-center justify-center
+                                       rounded-full bg-gray-900 text-white
+                                       text-xs font-medium">
                         {unread}
                       </span>
                     )}
@@ -284,10 +294,11 @@ export default function ConversationList() {
       </div>
 
       {/* New chat */}
-      <div className="p-3 border-t">
+      <div className="p-3 border-t border-gray-200">
         <button
           onClick={() => setOpen(true)}
-          className="w-full rounded-lg bg-black py-2 text-sm text-white"
+          className="w-full rounded-lg bg-black py-2 text-sm font-medium
+                     text-white hover:bg-gray-800 transition"
         >
           + New chat
         </button>
