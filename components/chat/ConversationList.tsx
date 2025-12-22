@@ -15,6 +15,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getUserProfile } from "@/lib/firestore";
 import StartConversation from "./StartConversation";
 import ConversationSkeleton from "@/components/skeletons/ConversationsSkeleton";
+import Image from "next/image";
 
 interface ConversationItem {
     id: string;
@@ -155,10 +156,12 @@ export default function ConversationList() {
                             >
                                 {/* Avatar */}
                                 {profile?.photoURL ? (
-                                    <img
+                                    <Image
                                         src={profile.photoURL}
                                         className="w-9 h-9 rounded-full object-cover"
                                         alt="Avatar"
+                                        width={16}
+                                        height={16}
                                     />
                                 ) : (
                                     <div className="w-9 h-9 rounded-full bg-gray-900 text-white
