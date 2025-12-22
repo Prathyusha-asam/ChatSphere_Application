@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
+import React from "react";
 
 /* ---------- constants ---------- */
 const MENU_WIDTH = 176;
@@ -25,9 +26,13 @@ interface MessageItemProps {
     text: string;
     senderId?: string;
   };
+
+  // ✅ ADD (non-breaking)
+  isRead?: boolean;
+  deliveredAt?: any;
 }
 
-export default function MessageItem({
+function MessageItem({
   id,
   text,
   senderId,
@@ -35,6 +40,8 @@ export default function MessageItem({
   createdAt,
   editedAt,
   replyTo,
+  isRead,
+  deliveredAt,
 }: MessageItemProps) {
   const isMine = senderId === auth.currentUser?.uid;
 
@@ -49,24 +56,27 @@ export default function MessageItem({
   const menuRef = useRef<HTMLDivElement>(null);
 
   /* ---------- Right click ---------- */
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
 
-    const clickX = e.clientX;
-    const clickY = e.clientY;
+      const clickX = e.clientX;
+      const clickY = e.clientY;
 
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
 
-    let x = clickX;
-    let y = clickY;
+      let x = clickX;
+      let y = clickY;
 
-    if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
-    if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
+      if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
+      if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
 
-    setMenuPos({ x, y });
-    setMenuOpen(true);
-  };
+      setMenuPos({ x, y });
+      setMenuOpen(true);
+    },
+    []
+  );
 
   /* ---------- Close on outside click ---------- */
   useEffect(() => {
@@ -79,32 +89,28 @@ export default function MessageItem({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ---------- Delete ---------- */
-  const handleDelete = async () => {
-  if (!id || !currentConversation) return;
+  /* ---------- Delete (MERGED + NT-29) ---------- */
+  const handleDelete = useCallback(async () => {
+    if (!id || !currentConversation) return;
 
-  try {
-    await deleteMessage(currentConversation.id, id);
-  } catch (err) {
-    console.error("Delete message failed:", err);
-    alert("Unable to delete message. Please try again.");
-  } finally {
-    setMenuOpen(false);
-  }
-};
-
+    try {
+      await deleteMessage(currentConversation.id, id);
+    } catch (err) {
+      setMenuOpen(false);
+    }
+  }, [id, currentConversation]);
 
   /* ---------- Reply ---------- */
-  const handleReply = () => {
+  const handleReply = useCallback(() => {
     setReplyTo({ id, text, senderId });
     setMenuOpen(false);
-  };
+  }, [id, text, senderId, setReplyTo]);
 
   /* ---------- Edit ---------- */
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     setEditMessage({ id, text });
     setMenuOpen(false);
-  };
+  }, [id, text, setEditMessage]);
 
   return (
     <>
@@ -127,7 +133,8 @@ export default function MessageItem({
           {/* Reply preview */}
           {replyTo && (
             <div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
-              Replying to: <span className="italic">{replyTo.text}</span>
+              Replying to:{" "}
+              <span className="italic">{replyTo.text}</span>
             </div>
           )}
 
@@ -147,6 +154,16 @@ export default function MessageItem({
               hour: "2-digit",
               minute: "2-digit",
             })}
+            {/* ✅ Seen / Delivered */}
+            {isMine && (
+              <span className="ml-1">
+                {isRead
+                  ? "👁 Seen"
+                  : deliveredAt
+                  ? "✓ Delivered"
+                  : "Sending…"}
+              </span>
+            )}
           </span>
         )}
       </div>
@@ -161,9 +178,7 @@ export default function MessageItem({
         >
           <MenuItem label="Reply" onClick={handleReply} />
 
-          {isMine && (
-            <MenuItem label="Edit" onClick={handleEdit} />
-          )}
+          {isMine && <MenuItem label="Edit" onClick={handleEdit} />}
 
           {isMine && (
             <>
@@ -205,3 +220,4 @@ function MenuItem({
     </button>
   );
 }
+export default React.memo(MessageItem);

@@ -1,7 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   collection,
   query,
@@ -25,7 +26,7 @@ interface ConversationItem {
   lastMessage?: string;
   lastMessageAt?: {
     toDate: () => Date;
-  };
+  } | null;
 }
 
 interface UserProfile {
@@ -46,6 +47,7 @@ export default function ConversationList() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
 
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   /* ---------- Fetch conversations ---------- */
   useEffect(() => {
     if (!user) return;
@@ -63,13 +65,16 @@ export default function ConversationList() {
       q,
       (snap: QuerySnapshot<DocumentData>) => {
         const list = snap.docs
-          .map((d) => ({ id: d.id, ...(d.data() as any) }))
+          .map((d) => ({
+            id: d.id,
+            ...(d.data() as any),
+          }))
           .filter((c) => c.lastMessage?.trim());
 
         setConversations(list);
         setLoading(false);
       },
-      (err: Error) => {
+      (err) => {
         console.error("Conversation list error:", err);
         setError("Unable to load conversations. Please try again.");
         setLoading(false);
@@ -78,6 +83,37 @@ export default function ConversationList() {
 
     return () => unsubscribe();
   }, [user]);
+  /* ================== ✅ UNREAD COUNT (NO INDEX VERSION) ================== */
+useEffect(() => {
+  if (!user || !conversations.length) return;
+
+  const unsubscribers: (() => void)[] = [];
+
+  conversations.forEach((conv) => {
+    const q = query(
+      collection(db, "messages"),
+      where("conversationId", "==", conv.id),
+      where("isRead", "==", false)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const unread = snap.docs.filter(
+        (d) => d.data().senderId !== user.uid
+      ).length;
+
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [conv.id]: unread,
+      }));
+    });
+
+    unsubscribers.push(unsub);
+  });
+
+  return () => {
+    unsubscribers.forEach((u) => u());
+  };
+}, [conversations, user]);
 
   /* ---------- Fetch user profiles ---------- */
   useEffect(() => {
@@ -101,6 +137,55 @@ export default function ConversationList() {
       }
     });
   }, [conversations, profiles, user]);
+
+  /* ---------- WhatsApp-style date formatter ---------- */
+  const formatDate = (date?: { toDate: () => Date } | null) => {
+    if (!date) return "";
+
+    const d = date.toDate();
+    const now = new Date();
+
+    const isToday = d.toDateString() === now.toDateString();
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+
+    if (isToday) {
+      return d.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    if (isYesterday) return "Yesterday";
+
+    return d.toLocaleDateString();
+  };
+
+  /* ---------- Search filter ---------- */
+  const filteredConversations = useMemo(() => {
+    if (!search) return conversations;
+
+    return conversations.filter((c) => {
+      const otherId = c.participants.find((p) => p !== user?.uid) || "";
+      const profile = profiles[otherId];
+
+      return (
+        profile?.displayName
+          ?.toLowerCase()
+          .includes(search.toLowerCase()) ?? true
+      );
+    });
+  }, [conversations, profiles, search, user?.uid]);
+
+  const handleOpenConversation = useCallback(
+    (id: string) => {
+      router.push(`/chat?cid=${id}`);
+    },
+    [router]
+  );
 
   /* ---------- Loading ---------- */
   if (loading) {
@@ -166,25 +251,16 @@ export default function ConversationList() {
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        {conversations.map((c) => {
+        {filteredConversations.map((c) => {
           const otherId =
             c.participants.find((p) => p !== user?.uid) || "";
           const profile = profiles[otherId];
-
-          if (
-            search &&
-            profile &&
-            !profile.displayName
-              .toLowerCase()
-              .includes(search.toLowerCase())
-          ) {
-            return null;
-          }
+          const unread = unreadCounts[c.id] || 0;
 
           return (
             <div
               key={c.id}
-              onClick={() => router.push(`/chat?cid=${c.id}`)}
+              onClick={() => handleOpenConversation(c.id)}
               className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
                 ${c.id === activeCid ? "bg-gray-100" : "hover:bg-gray-50"}`}
             >
@@ -194,6 +270,7 @@ export default function ConversationList() {
                   src={profile.photoURL}
                   className="w-9 h-9 rounded-full object-cover"
                   alt="Avatar"
+                  loading="lazy"
                 />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-gray-900 text-white
@@ -204,9 +281,31 @@ export default function ConversationList() {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 truncate">
-                  {profile?.displayName || "Loading"}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-900 truncate">
+                    {profile?.displayName || "Loading"}
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">
+                      {formatDate(c.lastMessageAt)}
+                    </span>
+
+                    {/* ✅ UNREAD BADGE */}
+                    {unread > 0 && (
+                      <span
+                        className="min-w-[20px] h-5 px-1
+                                   flex items-center justify-center
+                                   rounded-full
+                                   bg-gray-900 text-white
+                                   text-xs font-medium"
+                      >
+                        {unread}
+                      </span>
+                    )}
+                  </div>
                 </div>
+
                 <div className="text-xs text-gray-500 truncate">
                   {c.lastMessage || "No messages yet"}
                 </div>

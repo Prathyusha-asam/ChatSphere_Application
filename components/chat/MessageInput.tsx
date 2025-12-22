@@ -7,7 +7,7 @@ import { useChat } from "@/hooks/useChat";
 import EmojiPicker from "emoji-picker-react";
 import LoadingSpinner from "../ui/LoadingSpinner";
 
-const MAX_CHARS = 500; // ✅ added
+const MAX_CHARS = 500;
 
 export default function MessageInput() {
   const {
@@ -23,22 +23,57 @@ export default function MessageInput() {
   const [showEmoji, setShowEmoji] = useState(false);
   const [error, setError] = useState("");
 
-  const emojiRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  /* Typing indicator (valid effect) */
+  /* =========================================================
+     Typing indicator (debounced & stable)
+     ========================================================= */
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
 
+    // Stop typing immediately if input is empty
+    if (!text.trim()) {
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser.uid,
+        false
+      );
+      return;
+    }
+
+    // User is typing
     setTypingStatus(
       currentConversation.id,
       auth.currentUser.uid,
-      !!text
+      true
     );
+
+    // Clear previous debounce timer
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Stop typing after 2s of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser!.uid,
+        false
+      );
+    }, 2000);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
   }, [text, currentConversation]);
 
+  /* =========================================================
+     Send message
+     ========================================================= */
   const handleSend = async () => {
-    if (!currentConversation) return;
+    if (!currentConversation || !auth.currentUser) return;
 
     const trimmedText = text.trim();
 
@@ -58,15 +93,31 @@ export default function MessageInput() {
       setText("");
       clearComposerState?.();
 
+      // Stop typing immediately after send
       setTypingStatus(
         currentConversation.id,
-        auth.currentUser!.uid,
+        auth.currentUser.uid,
         false
       );
     } catch {
       setError("Failed to send message. Please try again.");
     }
   };
+
+  /* =========================================================
+     Cleanup on unmount (IMPORTANT)
+     ========================================================= */
+  useEffect(() => {
+    return () => {
+      if (auth.currentUser && currentConversation) {
+        setTypingStatus(
+          currentConversation.id,
+          auth.currentUser.uid,
+          false
+        );
+      }
+    };
+  }, [currentConversation]);
 
   if (!currentConversation) return null;
 
@@ -108,7 +159,6 @@ export default function MessageInput() {
 
       <div className="flex items-center gap-2">
         <button
-          ref={buttonRef}
           type="button"
           onClick={() => setShowEmoji((p) => !p)}
           className="flex h-10 w-10 items-center justify-center rounded-full
@@ -118,10 +168,7 @@ export default function MessageInput() {
         </button>
 
         {showEmoji && (
-          <div
-            ref={emojiRef}
-            className="absolute bottom-full left-0 mb-2 z-50"
-          >
+          <div className="absolute bottom-full left-0 mb-2 z-50">
             <EmojiPicker
               onEmojiClick={(e) =>
                 setText((prev) => prev + e.emoji)
@@ -136,7 +183,6 @@ export default function MessageInput() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            // ✅ Ctrl + Enter support
             if (e.key === "Enter" && e.ctrlKey) {
               e.preventDefault();
               handleSend();
@@ -156,15 +202,9 @@ export default function MessageInput() {
         >
           {loading ? <LoadingSpinner size={16} /> : "Send"}
         </button>
-        {error && (
-          <p className="mt-2 text-xs text-red-600 text-center">
-            {error}
-          </p>
-        )}
-
       </div>
 
-      {/* ✅ Error message + character count */}
+      {/* Error + character count */}
       <div className="mt-1 flex items-center justify-between px-2 text-xs">
         <span className="text-red-500">{error}</span>
         <span

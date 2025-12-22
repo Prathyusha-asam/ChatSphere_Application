@@ -15,6 +15,8 @@ import {
   where,
   orderBy,
   onSnapshot,
+  updateDoc,
+  doc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -36,6 +38,8 @@ export interface Message {
     text: string;
     senderId?: string;
   };
+  isRead?: boolean;
+  deliveredAt?: any;
 }
 
 export interface Conversation {
@@ -130,6 +134,35 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     return () => unsubscribe();
   }, [currentConversation]);
+
+  /* =========================================================
+   ✅ MARK MESSAGES AS SEEN (FINAL, GUARANTEED)
+   ========================================================= */
+
+useEffect(() => {
+  if (!user || !currentConversation) return;
+  if (!messages.length) return;
+
+  const unreadMessages = messages.filter(
+    (msg) =>
+      msg.senderId !== user.uid &&
+      msg.isRead !== true
+  );
+
+  if (!unreadMessages.length) return;
+
+  unreadMessages.forEach(async (msg) => {
+    try {
+      await updateDoc(doc(db, "messages", msg.id), {
+        isRead: true,
+      });
+    } catch (err) {
+      console.error("🔥 SEEN UPDATE FAILED:", err);
+    }
+  });
+}, [messages, currentConversation?.id, user?.uid]);
+
+
 
   /* =========================================================
      ACTIONS

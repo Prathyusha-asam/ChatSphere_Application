@@ -13,5 +13,7 @@ export function useChat(): ChatContextType {
     throw new Error("useChat must be used within a ChatProvider");
   }
 
+  
+
   return context;
 }

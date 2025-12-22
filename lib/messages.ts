@@ -10,11 +10,12 @@ import {
   serverTimestamp,
   updateDoc,
   where,
+  runTransaction,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
 /* =========================================================
-   SEND MESSAGE (EXISTING BEHAVIOR)
+   SEND MESSAGE (FIXED – GUARANTEED COMMIT)
    ========================================================= */
 export async function sendMessage(
   conversationId: string,
@@ -29,22 +30,30 @@ export async function sendMessage(
   const msg = text.trim();
   if (!msg) return;
 
-  await addDoc(collection(db, "messages"), {
-    conversationId,
-    senderId,
-    text: msg,
-    replyTo: replyTo ?? null,
-    createdAt: serverTimestamp(),
-  });
+  const convoRef = doc(db, "conversations", conversationId);
+  const messagesRef = collection(db, "messages");
 
-  await updateDoc(doc(db, "conversations", conversationId), {
-    lastMessage: msg,
-    lastMessageAt: serverTimestamp(),
+  await runTransaction(db, async (tx: { set: (arg0: any, arg1: { conversationId: string; senderId: string; text: string; replyTo: { messageId: string; text: string; senderId: string; } | null; createdAt: any; }) => void; update: (arg0: any, arg1: { lastMessage: string; lastMessageAt: any; }) => void; }) => {
+    // 1️⃣ Add message
+    const messageRef = doc(messagesRef);
+    tx.set(messageRef, {
+      conversationId,
+      senderId,
+      text: msg,
+      replyTo: replyTo ?? null,
+      createdAt: serverTimestamp(),
+    });
+
+    // 2️⃣ Update conversation atomically
+    tx.update(convoRef, {
+      lastMessage: msg,
+      lastMessageAt: serverTimestamp(),
+    });
   });
 }
 
 /* =========================================================
-   UPDATE MESSAGE (EDIT FEATURE)
+   UPDATE MESSAGE
    ========================================================= */
 export async function updateMessage(
   conversationId: string,
@@ -62,7 +71,7 @@ export async function updateMessage(
 }
 
 /* =========================================================
-   DELETE MESSAGE (UNCHANGED)
+   DELETE MESSAGE (ALREADY FIXED)
    ========================================================= */
 export async function deleteMessage(
   conversationId: string,
@@ -73,6 +82,7 @@ export async function deleteMessage(
   const q = query(
     collection(db, "messages"),
     where("conversationId", "==", conversationId),
+    where("__name__", "!=", messageId),
     orderBy("createdAt", "desc"),
     limit(1)
   );

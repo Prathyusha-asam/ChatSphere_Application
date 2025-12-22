@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,11 +21,13 @@ export default function StartConversation({
 }) {
   const { user } = useAuth();
   const router = useRouter();
+
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /* ---------- Load users ---------- */
   useEffect(() => {
     async function loadUsers() {
       try {
@@ -51,34 +54,45 @@ export default function StartConversation({
     loadUsers();
   }, [user]);
 
-  const filtered = users.filter((u) =>
-    (u.displayName || "")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  /* ---------- NT-29: memoized filter ---------- */
+  const filtered = useMemo(() => {
+    return users.filter((u) =>
+      (u.displayName || "")
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }, [users, search]);
+
+  /* ---------- NT-29: memoized start chat (MERGED) ---------- */
+  const startChat = useCallback(
+    async (otherUserId: string) => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const cid = await createConversation(
+          user.uid,
+          otherUserId
+        );
+
+        onClose();
+        router.push(`/chat?cid=${cid}`);
+      } catch (err) {
+        console.error("Start conversation failed:", err);
+        setError("Unable to start chat. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, onClose, router]
   );
-
-  const startChat = async (otherUserId: string) => {
-  if (!user) return;
-
-  try {
-    setLoading(true);
-    const cid = await createConversation(user.uid, otherUserId);
-    onClose();
-    router.push(`/chat?cid=${cid}`);
-  } catch (err) {
-    console.error("Start conversation failed:", err);
-    setError("Unable to start chat. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-
       {/* Modal */}
       <div className="w-full max-w-sm rounded-xl bg-white shadow-lg">
-
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-200">
           <h2 className="text-sm font-medium text-gray-900">
@@ -99,9 +113,16 @@ export default function StartConversation({
           />
         </div>
 
+        {/* Error */}
+        {error && (
+          <p className="px-4 pb-2 text-sm text-red-600 text-center">
+            {error}
+          </p>
+        )}
+
         {/* User list */}
         <div className="max-h-64 overflow-y-auto px-2 pb-2">
-          {filtered.length === 0 && (
+          {filtered.length === 0 && !loading && (
             <p className="px-3 py-4 text-sm text-gray-500 text-center">
               No users found
             </p>
@@ -111,8 +132,10 @@ export default function StartConversation({
             <button
               key={`user-${u.userId}`}
               onClick={() => startChat(u.userId)}
+              disabled={loading}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2
-                         hover:bg-gray-100 transition text-left"
+                         hover:bg-gray-100 transition text-left
+                         disabled:opacity-60"
             >
               {/* Avatar */}
               {u.photoURL ? (
@@ -120,10 +143,14 @@ export default function StartConversation({
                   src={u.photoURL}
                   className="h-9 w-9 rounded-full object-cover"
                   alt="Avatar"
+                  loading="lazy"
                 />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center
-                                rounded-full bg-gray-900 text-sm font-medium text-white">
+                <div
+                  className="flex h-9 w-9 items-center justify-center
+                             rounded-full bg-gray-900 text-sm
+                             font-medium text-white"
+                >
                   {(u.displayName || "U")[0].toUpperCase()}
                 </div>
               )}
