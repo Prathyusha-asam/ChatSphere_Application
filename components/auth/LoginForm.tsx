@@ -160,7 +160,7 @@ export default function LoginForm() {
           <p className="text-sm text-red-600">{error}</p>
           <button
             type="button"
-            onClick={handleSubmit as any}
+            onClick={handleSubmit}
             className="mt-1 text-sm underline"
           >
             Try again
