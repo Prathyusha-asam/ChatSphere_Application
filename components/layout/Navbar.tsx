@@ -20,7 +20,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  /* ---------- Fetch Profile ---------- */
+  /* ---------- Fetch Profile (real-time) ---------- */
   useEffect(() => {
     if (!user) return;
 
@@ -49,12 +49,24 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  /* ---------- Helpers ---------- */
   const getInitials = (name?: string) => {
     if (!name) return "";
     const parts = name.trim().split(" ");
     return parts.length > 1
       ? parts[0][0] + parts[1][0]
       : parts[0][0];
+  };
+
+  /* ---------- Logout handlers ---------- */
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+    setOpen(false);
+  };
+
+  const handleConfirmLogout = async () => {
+    await logout();
+    setShowLogoutConfirm(false);
   };
 
   return (
@@ -72,9 +84,11 @@ export default function Navbar() {
             className="flex items-center gap-2 rounded-full px-2 py-1 hover:bg-gray-100 transition"
           >
             {profile?.photoURL ? (
-              <img
+              <Image
                 src={profile.photoURL}
                 className="w-8 h-8 rounded-full object-cover"
+                width={16}
+              height={16}
                 alt="Avatar"
               />
             ) : (
@@ -102,9 +116,11 @@ export default function Navbar() {
               {/* Header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
                 {profile?.photoURL ? (
-                  <img
+                  <Image
                     src={profile.photoURL}
                     className="w-9 h-9 rounded-full"
+                    width={16}
+              height={16}
                     alt="Avatar"
                   />
                 ) : (
@@ -161,6 +177,13 @@ export default function Navbar() {
           )}
         </div>
       )}
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmLogoutModal
+        open={showLogoutConfirm}
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </nav>
   );
 }

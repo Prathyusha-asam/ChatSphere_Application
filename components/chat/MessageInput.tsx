@@ -7,6 +7,8 @@ import { useChat } from "@/hooks/useChat";
 import EmojiPicker from "emoji-picker-react";
 import LoadingSpinner from "../ui/LoadingSpinner";
 
+const MAX_CHARS = 500; // ✅ added
+
 export default function MessageInput() {
   const {
     currentConversation,
@@ -36,21 +38,33 @@ export default function MessageInput() {
   }, [text, currentConversation]);
 
   const handleSend = async () => {
-    if (!text.trim() || !currentConversation) return;
+    if (!currentConversation) return;
+
+    const trimmedText = text.trim();
+
+    if (!trimmedText) {
+      setError("Message cannot be empty");
+      return;
+    }
+
+    if (trimmedText.length > MAX_CHARS) {
+      setError(`Message cannot exceed ${MAX_CHARS} characters`);
+      return;
+    }
 
     try {
       setError("");
-      await sendMessage(text);
+      await sendMessage(trimmedText);
       setText("");
-    } catch (err) {
-      console.error("Send message failed:", err);
-      setError("Failed to send message. Try again.");
-    } finally {
+      clearComposerState?.();
+
       setTypingStatus(
         currentConversation.id,
         auth.currentUser!.uid,
         false
       );
+    } catch {
+      setError("Failed to send message. Please try again.");
     }
   };
 
@@ -59,12 +73,13 @@ export default function MessageInput() {
   return (
     <div
       className="relative"
-      /* 🔑 THIS IS THE MAGIC */
       key={editMessage?.id ?? "new-message"}
     >
       {(replyTo || editMessage) && (
-        <div className="mb-2 flex items-center justify-between
-                        rounded-lg bg-gray-100 px-3 py-2 text-xs">
+        <div
+          className="mb-2 flex items-center justify-between
+                     rounded-lg bg-gray-100 px-3 py-2 text-xs"
+        >
           <div className="truncate">
             {editMessage ? (
               <span className="font-medium text-gray-700">
@@ -120,6 +135,13 @@ export default function MessageInput() {
           placeholder={editMessage ? "Edit message…" : "Message"}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            // ✅ Ctrl + Enter support
+            if (e.key === "Enter" && e.ctrlKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
           className="flex-1 rounded-full border border-gray-300 bg-white
                      px-4 py-2 text-sm text-gray-900
                      focus:outline-none focus:ring-2 focus:ring-gray-900/20"
@@ -140,6 +162,20 @@ export default function MessageInput() {
           </p>
         )}
 
+      </div>
+
+      {/* ✅ Error message + character count */}
+      <div className="mt-1 flex items-center justify-between px-2 text-xs">
+        <span className="text-red-500">{error}</span>
+        <span
+          className={
+            text.length > MAX_CHARS
+              ? "text-red-500"
+              : "text-gray-400"
+          }
+        >
+          {text.length}/{MAX_CHARS}
+        </span>
       </div>
     </div>
   );
