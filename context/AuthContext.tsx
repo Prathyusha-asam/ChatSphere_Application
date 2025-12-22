@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import {
   createContext,
   useContext,
@@ -16,7 +16,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { updateUserProfile } from "@/lib/firestore";
-
+ 
 // #region Types
 /**
  * Represents authenticated user data used across the app
@@ -26,7 +26,7 @@ export interface AuthUser {
   email: string | null;
   displayName?: string | null;
 }
-
+ 
 /**
  * Shape of the authentication context
  */
@@ -34,20 +34,20 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
-
+ 
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 // #endregion Types
-
+ 
 // #region Context
 /**
  * Global authentication context
  */
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // #endregion Context
-
+ 
 // #region Provider
 /**
  * AuthProvider
@@ -58,10 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
+ 
   useEffect(() => {
     let detachUnload: (() => void) | null = null;
-
+ 
     const unsubscribe = onAuthStateChanged(
       auth,
       async (firebaseUser: User | null) => {
@@ -71,39 +71,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
           };
-
+ 
           setUser(authUser);
-
+ 
           await updateUserProfile(firebaseUser.uid, {
             isOnline: true,
           });
-
+ 
           const handleOffline = async () => {
             await updateUserProfile(firebaseUser.uid, {
               isOnline: false,
               lastSeen: new Date(),
             });
           };
-
+ 
           window.addEventListener("beforeunload", handleOffline);
-
+ 
           detachUnload = () => {
             window.removeEventListener("beforeunload", handleOffline);
           };
         } else {
           setUser(null);
         }
-
+ 
         setLoading(false);
       }
     );
-
+ 
     return () => {
       if (detachUnload) detachUnload();
       unsubscribe();
     };
   }, []);
-
+ 
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
-
+ 
   const register = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
-
+ 
   const logout = async () => {
     try {
       if (user) {
@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError("Logout failed");
     }
   };
-
+ 
   return (
     <AuthContext.Provider
       value={{ user, loading, error, login, register, logout }}
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 // #endregion Provider
-
+ 
 // #region Hook
 /**
  * useAuth
@@ -160,11 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  */
 export function useAuth() {
   const context = useContext(AuthContext);
-
+ 
   if (!context) {
     throw new Error("useAuth must be used within AuthProvider");
   }
-
+ 
   return context;
 }
 // #endregion Hook
+ 
