@@ -169,21 +169,31 @@ export default function MessageInput() {
           </div>
         )}
 
-        <input
-          type="text"
-          placeholder={editMessage ? "Edit message…" : "Message"}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.ctrlKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          className="flex-1 rounded-full border border-gray-300 bg-white
-                     px-4 py-2 text-sm text-gray-900
-                     focus:outline-none focus:ring-2 focus:ring-gray-900/20"
-        />
+        <textarea
+  placeholder={editMessage ? "Edit message…" : "Message"}
+  value={text}
+  rows={1}
+  onChange={(e) => setText(e.target.value)}
+ onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    
+    if (e.ctrlKey || e.altKey) {
+      e.preventDefault();
+      setText((prev) => prev + "\n");
+      return;
+    }
+
+    
+    e.preventDefault();
+    handleSend();
+  }
+}}
+
+  className="flex-1 resize-none rounded-2xl border border-gray-300 bg-white
+             px-4 py-2 text-sm text-gray-900
+             focus:outline-none focus:ring-2 focus:ring-gray-900/20"
+/>
+
 
         <button
           onClick={handleSend}

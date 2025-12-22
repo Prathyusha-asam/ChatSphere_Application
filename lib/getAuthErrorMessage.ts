@@ -16,6 +16,8 @@ export function getAuthErrorMessage(error: unknown): string {
     return "Network issue. Check your connection.";
   if (errorCode.includes("too-many-requests") || message.includes("too-many-requests"))
     return "Too many attempts. Please try again later.";
+  if (message.includes("permission") || message.includes("insufficient"))
+    return "Service temporarily unavailable. Please try again later.";
 
-  return "Invalid  password.";
+  return "Invalid email or password.";
 }
