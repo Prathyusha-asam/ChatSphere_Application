@@ -4,14 +4,16 @@ import {
   getDoc,
   serverTimestamp,
   DocumentData,
+  updateDoc,
+  arrayUnion,
+  addDoc,
+  collection,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
-//region Create User Profile
-/**
- * Creates a user profile document in Firestore
- * Called immediately after successful signup
- */
+// =======================================================
+// Create User Profile
+// =======================================================
 export async function createUserProfile(
   userId: string,
   email: string,
@@ -34,13 +36,10 @@ export async function createUserProfile(
     throw error;
   }
 }
-//endregion Create User Profile
 
-//region Get User Profile
-/**
- * Fetches a user profile from Firestore by userId
- * Returns null if user does not exist
- */
+// =======================================================
+// Get User Profile
+// =======================================================
 export async function getUserProfile(
   userId: string
 ): Promise<DocumentData | null> {
@@ -57,13 +56,37 @@ export async function getUserProfile(
     throw error;
   }
 }
-//endregion Get User Profile
 
-// #region Update User Profile
-/**
- * Updates user profile fields in Firestore
- * Called from Profile Edit form
- */
+// =======================================================
+// Emoji Reaction (per message)
+// =======================================================
+export async function toggleReaction(
+  messageId: string,
+  emoji: string,
+  userId: string
+) {
+  const ref = doc(db, "messages", messageId);
+
+  await updateDoc(ref, {
+    [`reactions.${emoji}`]: arrayUnion(userId),
+  });
+}
+
+// =======================================================
+// Star Message (per user)
+// =======================================================
+export async function toggleStar(
+  messageId: string,
+  userId: string
+) {
+  await updateDoc(doc(db, "messages", messageId), {
+    starredBy: arrayUnion(userId),
+  });
+}
+
+// =======================================================
+// Update User Profile
+// =======================================================
 export async function updateUserProfile(
   userId: string,
   data: {
@@ -89,4 +112,33 @@ export async function updateUserProfile(
     throw error;
   }
 }
-// #endregion Update User Profile
+
+// =======================================================
+// Send Message (supports reply)
+// =======================================================
+export async function sendMessage(
+  conversationId: string,
+  senderId: string,
+  text: string,
+  replyTo?: {
+    id: string;
+    text: string;
+    senderId?: string;
+  } | null
+) {
+  const msg = text?.trim();
+  if (!msg) return;
+
+  await addDoc(collection(db, "messages"), {
+    conversationId,
+    senderId,
+    text: msg,
+    replyTo: replyTo ?? null,
+    createdAt: serverTimestamp(),
+  });
+
+  await updateDoc(doc(db, "conversations", conversationId), {
+    lastMessage: msg,
+    lastMessageAt: serverTimestamp(),
+  });
+}

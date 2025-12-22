@@ -4,14 +4,13 @@
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { useChat } from "@/hooks/useChat";
+
+import ConversationList from "@/components/chat/ConversationList";
 import ChatHeader from "@/components/chat/ChatHeader";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageList from "@/components/chat/MessageList";
 import TypingIndicator from "@/components/chat/TypingIndicator";
-import ConversationList from "@/components/chat/ConversationList";
-import { useChat } from "@/hooks/useChat";
-import { useConversations } from "@/hooks/useConversations";
-import StartChat from "../start-chat/page";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -35,32 +34,43 @@ export default function ChatPage() {
 
   return (
     <AuthGuard>
-      <div className="flex h-[calc(100vh-64px)]">
-        <ConversationList
-          conversations={conversations}
-          activeConversationId={conversationId}
-          onSelectConversation={handleSelectConversation}
-          loading={loading}
-          error={error}
-        />
+      <div className="flex h-[calc(100vh-72px)] bg-gray-50">
 
-        <div className="flex-1 flex flex-col">
+        {/* LEFT SIDEBAR */}
+        <div className="w-80 border-r border-gray-200 bg-white">
+          <ConversationList />
+        </div>
+
+        {/* RIGHT CHAT AREA */}
+        <div className="flex flex-1 flex-col bg-white">
+
+          {/* Empty State */}
           {!conversationId && (
-            <div className="flex flex-1 items-center justify-center">
-              <StartChat />
+            <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
+              Select a conversation to start chatting
             </div>
           )}
-          {conversationId && <ChatHeader />}
 
+          {/* Active Conversation */}
           {conversationId && (
             <>
-              <div className="flex-1 overflow-y-auto p-4 hide-scrollbar">
+              {/* Header */}
+              <div className="border-b border-gray-200">
+                <ChatHeader />
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-6 py-4 hide-scrollbar">
                 <MessageList />
               </div>
 
-              <TypingIndicator />
+              {/* Typing */}
+              <div className="px-6">
+                <TypingIndicator />
+              </div>
 
-              <div className="border-t p-3">
+              {/* Input */}
+              <div className="border-t border-gray-200 px-4 py-3 bg-white">
                 <MessageInput />
               </div>
             </>

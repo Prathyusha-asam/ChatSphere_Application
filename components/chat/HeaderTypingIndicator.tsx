@@ -40,10 +40,10 @@ export default function HeaderTypingIndicator() {
   if (!names.length) return null;
 
   return (
-    <div className="px-4 pb-2 text-xs italic text-gray-500">
+    <div className="px-6 pb-2 text-xs text-gray-500 select-none">
       {names.length === 1
-        ? `${names[0]} is typing...`
-        : `${names.join(", ")} are typing...`}
+        ? `${names[0]} is typing…`
+        : `${names.join(", ")} are typing…`}
     </div>
   );
 }

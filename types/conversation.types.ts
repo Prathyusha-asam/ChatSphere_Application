@@ -1,8 +1,6 @@
-import { Timestamp } from "firebase/firestore";
-
 export type Conversation = {
   id: string;
-  participants: string[];
-  lastMessage?: string;
-  lastMessageAt?: Timestamp;
+  participants: string[];      // user names
+  lastMessage: string;
+  lastMessageTime: string;     // ISO string
 };

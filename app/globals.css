@@ -12,13 +12,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -80,14 +73,6 @@ body {
   max-width: 70%;
   font-size: 0.95rem;
   line-height: 1.4;
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .chat-message {
-    background-color: #1f2937;
-    color: #f9fafb;
-  }
 }
 
 .hide-scrollbar {
