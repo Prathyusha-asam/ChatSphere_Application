@@ -1,12 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-
+ 
 import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "next/navigation";
-
+ 
 interface UserProfile {
   displayName: string;
   photoURL?: string;
@@ -15,21 +15,23 @@ interface UserProfile {
     toDate: () => Date;
   };
 }
-
+ 
 export default function ChatHeader() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("cid");
-
+ 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
     if (!conversationId || !user) return;
-
+ 
+    let unsubscribeUser: (() => void) | null = null;
+ 
     const convoRef = doc(db, "conversations", conversationId);
-
+ 
     const unsubscribeConversation = onSnapshot(
       convoRef,
       (snap) => {
@@ -38,18 +40,20 @@ export default function ChatHeader() {
           setLoading(false);
           return;
         }
-
+ 
         const participants: string[] = snap.data().participants || [];
         const otherUserId = participants.find((uid) => uid !== user.uid);
-        if (!otherUserId) {
-          setError("User not found");
-          setLoading(false);
-          return;
+        if (!otherUserId) return;
+ 
+        // ✅ ADDED: cleanup previous user listener
+        if (unsubscribeUser) {
+          unsubscribeUser();
+          unsubscribeUser = null;
         }
-
+ 
         const userRef = doc(db, "users", otherUserId);
-
-        const unsubscribeUser = onSnapshot(
+ 
+        unsubscribeUser = onSnapshot(
           userRef,
           (userSnap) => {
             if (userSnap.exists()) {
@@ -63,8 +67,6 @@ export default function ChatHeader() {
             setLoading(false);
           }
         );
-
-        return () => unsubscribeUser();
       },
       (err) => {
         console.error("Conversation snapshot error:", err);
@@ -72,31 +74,26 @@ export default function ChatHeader() {
         setLoading(false);
       }
     );
-
-    return () => unsubscribeConversation();
+ 
+    // ✅ ADDED: proper cleanup
+    return () => {
+      unsubscribeConversation();
+      if (unsubscribeUser) unsubscribeUser();
+    };
   }, [conversationId, user]);
-
+ 
   if (loading) {
-    return (
-      <div className="px-6 py-4 text-sm text-gray-500">
-        Loading chat…
-      </div>
-    );
+    return <div className="px-6 py-4 text-sm text-gray-500">Loading chat…</div>;
   }
-
+ 
   if (error) {
-    return (
-      <div className="px-6 py-4 text-sm text-red-600">
-        {error}
-      </div>
-    );
+    return <div className="px-6 py-4 text-sm text-red-600">{error}</div>;
   }
+ 
   if (!profile) return null;
-
+ 
   return (
-    <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 bg-white">
-
-      {/* Avatar */}
+    <div className="flex items-center gap-3 px-6 py-4 border-b bg-white">
       {profile.photoURL ? (
         <img
           src={profile.photoURL}
@@ -104,41 +101,18 @@ export default function ChatHeader() {
           className="w-9 h-9 rounded-full object-cover"
         />
       ) : (
-        <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold">
+        <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center">
           {profile.displayName?.[0]?.toUpperCase()}
         </div>
       )}
-
-      {/* User Info */}
-      <div className="flex flex-col leading-tight">
-        <span className="text-sm font-medium text-gray-900">
-          {profile.displayName}
+ 
+      <div className="flex flex-col">
+        <span className="text-sm font-medium">{profile.displayName}</span>
+        <span className="text-xs text-gray-500">
+          {profile.isOnline ? "Online" : "Offline"}
         </span>
-
-        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-          {profile.isOnline ? (
-            <>
-              <span className="w-2 h-2 rounded-full bg-green-500" />
-              <span>Online</span>
-            </>
-          ) : (
-            <>
-              <span className="w-2 h-2 rounded-full bg-gray-400" />
-              <span>
-                Last seen{" "}
-                {profile.lastSeen?.toDate
-                  ? profile.lastSeen
-                      .toDate()
-                      .toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                  : "—"}
-              </span>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );
 }
+ 

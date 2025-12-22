@@ -17,19 +17,16 @@ import {
 import { auth } from "@/lib/firebase";
 import { updateUserProfile } from "@/lib/firestore";
  
-// #region Types
-/**
- * Represents authenticated user data used across the app
- */
+/* -----------------------------------
+   TYPES
+----------------------------------- */
+ 
 export interface AuthUser {
   uid: string;
   email: string | null;
   displayName?: string | null;
 }
  
-/**
- * Shape of the authentication context
- */
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
@@ -39,21 +36,19 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
-// #endregion Types
  
-// #region Context
-/**
- * Global authentication context
- */
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-// #endregion Context
+/* -----------------------------------
+   CONTEXT
+----------------------------------- */
  
-// #region Provider
-/**
- * AuthProvider
- * - Maintains Firebase authentication state
- * - Exposes auth actions (login, register, logout)
- */
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined
+);
+ 
+/* -----------------------------------
+   PROVIDER
+----------------------------------- */
+ 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -74,10 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  
           setUser(authUser);
  
+          // ✅ Mark online
           await updateUserProfile(firebaseUser.uid, {
             isOnline: true,
           });
  
+          // ✅ Handle browser close / refresh
           const handleOffline = async () => {
             await updateUserProfile(firebaseUser.uid, {
               isOnline: false,
@@ -104,6 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
  
+  /* -----------------------------------
+     AUTH ACTIONS
+  ----------------------------------- */
+ 
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -129,19 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
  
   const logout = async () => {
-    try {
-      if (user) {
-        await updateUserProfile(user.uid, {
-          isOnline: false,
-          lastSeen: new Date(),
-        });
-      }
-      await signOut(auth);
-      setUser(null);
-    } catch {
-      setError("Logout failed");
+  try {
+    if (auth.currentUser) {
+      await updateUserProfile(auth.currentUser.uid, {
+        isOnline: false,
+        lastSeen: new Date(),
+      });
     }
-  };
+ 
+    await signOut(auth);
+    setUser(null);
+  } catch {
+    setError("Logout failed");
+  }
+};
  
   return (
     <AuthContext.Provider
@@ -151,13 +153,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-// #endregion Provider
  
-// #region Hook
-/**
- * useAuth
- * Provides access to authentication context
- */
+/* -----------------------------------
+   HOOK
+----------------------------------- */
+ 
 export function useAuth() {
   const context = useContext(AuthContext);
  
@@ -167,5 +167,4 @@ export function useAuth() {
  
   return context;
 }
-// #endregion Hook
  
