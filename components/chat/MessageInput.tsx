@@ -37,20 +37,12 @@ export default function MessageInput() {
 
     // Stop typing immediately if input is empty
     if (!text.trim()) {
-      setTypingStatus(
-        currentConversation.id,
-        auth.currentUser.uid,
-        false
-      );
+      setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
       return;
     }
 
     // User is typing
-    setTypingStatus(
-      currentConversation.id,
-      auth.currentUser.uid,
-      true
-    );
+    setTypingStatus(currentConversation.id, auth.currentUser.uid, true);
 
     // Clear previous debounce timer
     if (typingTimeoutRef.current) {
@@ -59,11 +51,7 @@ export default function MessageInput() {
 
     // Stop typing after 2s of inactivity
     typingTimeoutRef.current = setTimeout(() => {
-      setTypingStatus(
-        currentConversation.id,
-        auth.currentUser!.uid,
-        false
-      );
+      setTypingStatus(currentConversation.id, auth.currentUser!.uid, false);
     }, 2000);
 
     return () => {
@@ -78,10 +66,7 @@ export default function MessageInput() {
      ========================================================= */
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (
-        emojiRef.current &&
-        !emojiRef.current.contains(e.target as Node)
-      ) {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
         setShowEmoji(false);
       }
     }
@@ -118,14 +103,9 @@ export default function MessageInput() {
       await sendMessage(trimmedText);
       setText("");
       setShowEmoji(false); // 👈 CLOSE EMOJI PICKER AFTER SEND (ADDED)
-      clearComposerState?.();
-
+      clearComposerState(); //
       // Stop typing immediately after send
-      setTypingStatus(
-        currentConversation.id,
-        auth.currentUser.uid,
-        false
-      );
+      setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
     } catch {
       setError("Failed to send message. Please try again.");
     }
@@ -137,11 +117,7 @@ export default function MessageInput() {
   useEffect(() => {
     return () => {
       if (auth.currentUser && currentConversation) {
-        setTypingStatus(
-          currentConversation.id,
-          auth.currentUser.uid,
-          false
-        );
+        setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
       }
     };
   }, [currentConversation]);
@@ -149,10 +125,7 @@ export default function MessageInput() {
   if (!currentConversation) return null;
 
   return (
-    <div
-      className="relative"
-      key={editMessage?.id ?? "new-message"}
-    >
+    <div className="relative" key={editMessage?.id ?? "new-message"}>
       {(replyTo || editMessage) && (
         <div
           className="mb-2 flex items-center justify-between
@@ -160,17 +133,11 @@ export default function MessageInput() {
         >
           <div className="truncate">
             {editMessage ? (
-              <span className="font-medium text-gray-700">
-                Editing message
-              </span>
+              <span className="font-medium text-gray-700">Editing message</span>
             ) : (
               <>
-                <span className="font-medium text-gray-700">
-                  Replying to:
-                </span>{" "}
-                <span className="italic text-gray-600">
-                  {replyTo?.text}
-                </span>
+                <span className="font-medium text-gray-700">Replying to:</span>{" "}
+                <span className="italic text-gray-600">{replyTo?.text}</span>
               </>
             )}
           </div>
@@ -191,23 +158,13 @@ export default function MessageInput() {
           className="flex h-10 w-10 items-center justify-center rounded-full
                      text-gray-600 hover:bg-gray-100 transition"
         >
-          <Image
-            src="/images/smiley.svg"
-            alt="Emoji"
-            width={22}
-            height={22}
-          />
+          <Image src="/images/smiley.svg" alt="Emoji" width={22} height={22} />
         </button>
 
         {showEmoji && (
-          <div
-            ref={emojiRef}
-            className="absolute bottom-full left-0 mb-2 z-50"
-          >
+          <div ref={emojiRef} className="absolute bottom-full left-0 mb-2 z-50">
             <EmojiPicker
-              onEmojiClick={(e) =>
-                setText((prev) => prev + e.emoji)
-              }
+              onEmojiClick={(e) => setText((prev) => prev + e.emoji)}
             />
           </div>
         )}
@@ -243,11 +200,7 @@ export default function MessageInput() {
       <div className="mt-1 flex items-center justify-between px-2 text-xs">
         <span className="text-red-500">{error}</span>
         <span
-          className={
-            text.length > MAX_CHARS
-              ? "text-red-500"
-              : "text-gray-400"
-          }
+          className={text.length > MAX_CHARS ? "text-red-500" : "text-gray-400"}
         >
           {text.length}/{MAX_CHARS}
         </span>

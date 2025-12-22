@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -48,7 +49,7 @@ function MessageItem({
   const {
     currentConversation,
     setReplyTo,
-    setEditMessage,
+    setEditMessage,// NEW
   } = useChat();
 
   const [menuOpen, setMenuOpen] = useState(false);

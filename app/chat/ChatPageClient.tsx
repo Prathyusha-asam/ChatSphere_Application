@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
- 
+
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -10,13 +10,12 @@ import ChatHeader from "@/components/chat/ChatHeader";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageList from "@/components/chat/MessageList";
 import TypingIndicator from "@/components/chat/TypingIndicator";
-import EmptyState from "@/components/ui/EmptyState"; 
- 
+import EmptyState from "@/components/ui/EmptyState";
+
 export default function ChatPageClient() {
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("cid");
-  const { startConversation } = useChat();
- 
+  const { startConversation, editMessage } = useChat();
   useEffect(() => {
     if (conversationId) {
       startConversation({
@@ -25,32 +24,28 @@ export default function ChatPageClient() {
       });
     }
   }, [conversationId]);
- 
+
   return (
     <AuthGuard>
       <div className="flex h-[calc(100vh-72px)] bg-gray-50">
- 
         {/* LEFT SIDEBAR */}
         <div className="w-80 border-r border-gray-200 bg-white">
           <ConversationList />
         </div>
- 
+
         {/* RIGHT CHAT AREA */}
         <div className="flex flex-1 flex-col bg-white">
- 
           {/* Empty State (ONLY CHANGE) */}
-                    {!conversationId && (
-                      <div className="flex flex-1 items-center justify-center">
-                        <EmptyState
-                          title="Select a conversation"
-                          description="Choose a chat from the sidebar to start chatting."
-                          icon="/images/select-chat.svg"
-                        />
-                      </div>
-                    )}
-          
-          
- 
+          {!conversationId && (
+            <div className="flex flex-1 items-center justify-center">
+              <EmptyState
+                title="Select a conversation"
+                description="Choose a chat from the sidebar to start chatting."
+                icon="/images/select-chat.svg"
+              />
+            </div>
+          )}
+
           {/* Active Conversation */}
           {conversationId && (
             <>
@@ -58,20 +53,19 @@ export default function ChatPageClient() {
               <div className="border-b border-gray-200">
                 <ChatHeader />
               </div>
- 
+
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-6 py-4 hide-scrollbar">
                 <MessageList />
               </div>
- 
+
               {/* Typing */}
               <div className="px-6">
                 <TypingIndicator />
               </div>
- 
-              {/* Input */}
               <div className="border-t border-gray-200 px-4 py-3 bg-white">
-                <MessageInput />
+                {/* KEY MOVED HERE */}
+                <MessageInput key={editMessage?.id ?? "new-message"} />
               </div>
             </>
           )}
