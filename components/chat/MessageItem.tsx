@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react"; // NT-29: added useCallback
 import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
+import React from "react";
 
 /* ---------- constants ---------- */
 const MENU_WIDTH = 176;
@@ -27,7 +28,7 @@ interface MessageItemProps {
   };
 }
 
-export default function MessageItem({
+function MessageItem({
   id,
   text,
   senderId,
@@ -49,24 +50,27 @@ export default function MessageItem({
   const menuRef = useRef<HTMLDivElement>(null);
 
   /* ---------- Right click ---------- */
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
 
-    const clickX = e.clientX;
-    const clickY = e.clientY;
+      const clickX = e.clientX;
+      const clickY = e.clientY;
 
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
 
-    let x = clickX;
-    let y = clickY;
+      let x = clickX;
+      let y = clickY;
 
-    if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
-    if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
+      if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
+      if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
 
-    setMenuPos({ x, y });
-    setMenuOpen(true);
-  };
+      setMenuPos({ x, y });
+      setMenuOpen(true);
+    },
+    []
+  );
 
   /* ---------- Close on outside click ---------- */
   useEffect(() => {
@@ -80,23 +84,23 @@ export default function MessageItem({
   }, []);
 
   /* ---------- Delete ---------- */
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!id || !currentConversation) return;
     await deleteMessage(currentConversation.id, id);
     setMenuOpen(false);
-  };
+  }, [id, currentConversation]);
 
   /* ---------- Reply ---------- */
-  const handleReply = () => {
+  const handleReply = useCallback(() => {
     setReplyTo({ id, text, senderId });
     setMenuOpen(false);
-  };
+  }, [id, text, senderId, setReplyTo]);
 
   /* ---------- Edit ---------- */
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     setEditMessage({ id, text });
     setMenuOpen(false);
-  };
+  }, [id, text, setEditMessage]);
 
   return (
     <>
@@ -197,3 +201,6 @@ function MenuItem({
     </button>
   );
 }
+
+/* ---------- NT-29: memoized export ---------- */
+export default React.memo(MessageItem);

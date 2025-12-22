@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react"; // NT-29: added useMemo, useCallback
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,19 +42,26 @@ export default function StartConversation({
     loadUsers();
   }, [user]);
 
-  const filtered = users.filter((u) =>
-    (u.displayName || "")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  /* ---------- NT-29: memoized filter ---------- */
+  const filtered = useMemo(() => {
+    return users.filter((u) =>
+      (u.displayName || "")
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }, [users, search]);
+
+  /* ---------- NT-29: memoized start chat ---------- */
+  const startChat = useCallback(
+    async (otherUserId: string) => {
+      if (!user) return;
+
+      const cid = await createConversation(user.uid, otherUserId);
+      onClose();
+      router.push(`/chat?cid=${cid}`);
+    },
+    [user, onClose, router]
   );
-
-  const startChat = async (otherUserId: string) => {
-    if (!user) return;
-
-    const cid = await createConversation(user.uid, otherUserId);
-    onClose();
-    router.push(`/chat?cid=${cid}`);
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -102,6 +110,7 @@ export default function StartConversation({
                   src={u.photoURL}
                   className="h-9 w-9 rounded-full object-cover"
                   alt="Avatar"
+                  loading="lazy" // NT-29: lazy load avatars
                 />
               ) : (
                 <div className="flex h-9 w-9 items-center justify-center

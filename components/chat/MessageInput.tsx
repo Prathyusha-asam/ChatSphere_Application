@@ -17,30 +17,65 @@ export default function MessageInput() {
     clearComposerState,
   } = useChat();
 
-  /* ✅ Initialize state ONCE per edit session */
   const [text, setText] = useState(editMessage?.text ?? "");
   const [showEmoji, setShowEmoji] = useState(false);
 
-  const emojiRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  /* Typing indicator (valid effect) */
+  /* =========================================================
+     Typing indicator (FIXED with debounce)
+     ========================================================= */
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
 
+    // If text is empty → immediately stop typing
+    if (!text.trim()) {
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser.uid,
+        false
+      );
+      return;
+    }
+
+    // User is typing
     setTypingStatus(
       currentConversation.id,
       auth.currentUser.uid,
-      !!text
+      true
     );
+
+    // Clear previous timer
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // ⏱ Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser!.uid,
+        false
+      );
+    }, 2000);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
   }, [text, currentConversation]);
 
+  /* =========================================================
+     Send message
+     ========================================================= */
   const handleSend = async () => {
     if (!text.trim() || !currentConversation) return;
 
     await sendMessage(text);
     setText("");
 
+    // Stop typing immediately after send
     setTypingStatus(
       currentConversation.id,
       auth.currentUser!.uid,
@@ -48,14 +83,25 @@ export default function MessageInput() {
     );
   };
 
+  /* =========================================================
+     Cleanup on unmount (IMPORTANT)
+     ========================================================= */
+  useEffect(() => {
+    return () => {
+      if (auth.currentUser && currentConversation) {
+        setTypingStatus(
+          currentConversation.id,
+          auth.currentUser.uid,
+          false
+        );
+      }
+    };
+  }, [currentConversation]);
+
   if (!currentConversation) return null;
 
   return (
-    <div
-      className="relative"
-      /* 🔑 THIS IS THE MAGIC */
-      key={editMessage?.id ?? "new-message"}
-    >
+    <div className="relative" key={editMessage?.id ?? "new-message"}>
       {(replyTo || editMessage) && (
         <div className="mb-2 flex items-center justify-between
                         rounded-lg bg-gray-100 px-3 py-2 text-xs">
@@ -87,7 +133,6 @@ export default function MessageInput() {
 
       <div className="flex items-center gap-2">
         <button
-          ref={buttonRef}
           type="button"
           onClick={() => setShowEmoji((p) => !p)}
           className="flex h-10 w-10 items-center justify-center rounded-full
@@ -97,10 +142,7 @@ export default function MessageInput() {
         </button>
 
         {showEmoji && (
-          <div
-            ref={emojiRef}
-            className="absolute bottom-full left-0 mb-2 z-50"
-          >
+          <div className="absolute bottom-full left-0 mb-2 z-50">
             <EmojiPicker
               onEmojiClick={(e) =>
                 setText((prev) => prev + e.emoji)

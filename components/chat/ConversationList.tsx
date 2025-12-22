@@ -1,7 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
     collection,
     query,
@@ -22,7 +23,7 @@ interface ConversationItem {
     lastMessage?: string;
     lastMessageAt?: {
         toDate: () => Date;
-    };
+    } | null;
 }
 
 interface UserProfile {
@@ -53,12 +54,13 @@ export default function ConversationList() {
         );
 
         const unsubscribe = onSnapshot(q, (snap) => {
-            const list = snap.docs
-                .map((d) => ({ id: d.id, ...(d.data() as any) }))
-                .filter((c) => c.lastMessage && c.lastMessage.trim() !== "");
+            const list = snap.docs.map((d) => ({
+                id: d.id,
+                ...(d.data() as any),
+            }));
 
             setConversations(list);
-            setLoading(false); // ✅ safe: inside external callback
+            setLoading(false);
         });
 
         return () => unsubscribe();
@@ -81,7 +83,59 @@ export default function ConversationList() {
                 }));
             }
         });
-    }, [conversations]);
+    }, [conversations, user, profiles]);
+
+    /* ---------- WhatsApp-style date formatter ---------- */
+    const formatDate = (date?: { toDate: () => Date } | null) => {
+        if (!date) return "";
+
+        const d = date.toDate();
+        const now = new Date();
+
+        const isToday =
+            d.toDateString() === now.toDateString();
+
+        const yesterday = new Date();
+        yesterday.setDate(now.getDate() - 1);
+
+        const isYesterday =
+            d.toDateString() === yesterday.toDateString();
+
+        if (isToday) {
+            return d.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        }
+
+        if (isYesterday) return "Yesterday";
+
+        return d.toLocaleDateString();
+    };
+
+    /* ---------- Search filter ---------- */
+    const filteredConversations = useMemo(() => {
+        if (!search) return conversations;
+
+        return conversations.filter((c) => {
+            const otherId =
+                c.participants.find((p) => p !== user?.uid) || "";
+            const profile = profiles[otherId];
+
+            return (
+                profile?.displayName
+                    ?.toLowerCase()
+                    .includes(search.toLowerCase()) ?? true
+            );
+        });
+    }, [conversations, profiles, search, user?.uid]);
+
+    const handleOpenConversation = useCallback(
+        (id: string) => {
+            router.push(`/chat?cid=${id}`);
+        },
+        [router]
+    );
 
     /* ---------- Empty state ---------- */
     if (!loading && !conversations.length) {
@@ -128,25 +182,15 @@ export default function ConversationList() {
                     ))}
 
                 {!loading &&
-                    conversations.map((c) => {
+                    filteredConversations.map((c) => {
                         const otherId =
                             c.participants.find((p) => p !== user?.uid) || "";
                         const profile = profiles[otherId];
 
-                        if (
-                            search &&
-                            profile &&
-                            !profile.displayName
-                                .toLowerCase()
-                                .includes(search.toLowerCase())
-                        ) {
-                            return null;
-                        }
-
                         return (
                             <div
                                 key={c.id}
-                                onClick={() => router.push(`/chat?cid=${c.id}`)}
+                                onClick={() => handleOpenConversation(c.id)}
                                 className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
                   ${c.id === activeCid
                                         ? "bg-gray-100"
@@ -159,6 +203,7 @@ export default function ConversationList() {
                                         src={profile.photoURL}
                                         className="w-9 h-9 rounded-full object-cover"
                                         alt="Avatar"
+                                        loading="lazy"
                                     />
                                 ) : (
                                     <div className="w-9 h-9 rounded-full bg-gray-900 text-white
@@ -169,9 +214,15 @@ export default function ConversationList() {
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-gray-900 truncate">
-                                        {profile?.displayName || "Loading"}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-900 truncate">
+                                            {profile?.displayName || "Loading"}
+                                        </span>
+                                        <span className="text-xs text-gray-400 ml-2">
+                                            {formatDate(c.lastMessageAt)}
+                                        </span>
                                     </div>
+
                                     <div className="text-xs text-gray-500 truncate">
                                         {c.lastMessage || "No messages yet"}
                                     </div>

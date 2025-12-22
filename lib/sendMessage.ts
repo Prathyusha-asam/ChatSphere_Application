@@ -7,28 +7,38 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+/**
+ * Sends a message and updates the conversation metadata
+ * IMPORTANT: Conversation update is REQUIRED for sidebar performance
+ */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
-  text: string,
-  replyTo?: {
-    id: string;
-    text: string;
-    senderId?: string;
-  } | null
-) {
-  const msg = text?.trim();
-  if (!msg) return;
+  text: string
+): Promise<void> {
+  try {
+    // ===============================
+    // 1. Save message
+    // ===============================
+    await addDoc(collection(db, "messages"), {
+      conversationId,
+      senderId,
+      text,
+      createdAt: serverTimestamp(),
+      isRead: false,
+    });
 
-  await addDoc(collection(db, "messages"), {
-    conversationId,
-    senderId,
-    text: msg,
-    createdAt: serverTimestamp(),
-  });
+    // ===============================
+    // 2. Update conversation (CRITICAL)
+    // ===============================
+    const conversationRef = doc(db, "conversations", conversationId);
 
-  await updateDoc(doc(db, "conversations", conversationId), {
-    lastMessage: msg,
-    lastMessageAt: serverTimestamp(),
-  });
+    await updateDoc(conversationRef, {
+      lastMessage: text,
+      lastMessageAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    throw error;
+  }
 }

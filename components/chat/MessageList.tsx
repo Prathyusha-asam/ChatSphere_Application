@@ -1,24 +1,32 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import MessageSkeleton from "@/components/skeletons/MessageSkeleton";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react"; // NT-29: added useCallback
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
 import { getUserProfile } from "@/lib/firestore";
+import React from "react";
 
 export default function MessageList() {
   const { messages, loading } = useChat();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const userCache = useRef<Record<string, string>>({});
+  const prevCountRef = useRef<number>(0); // NT-29: track message count
 
-  /* ---------- Auto scroll to bottom (unchanged behavior) ---------- */
+  /* ---------- Auto scroll to bottom (behavior preserved, optimized) ---------- */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    // NT-29: scroll only when a new message arrives
+    if (messages.length > prevCountRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevCountRef.current = messages.length;
   }, [messages]);
 
   // Load sender names (cached)
-  const getSenderName = async (uid: string) => {
+  const getSenderName = useCallback(async (uid: string) => {
+    // NT-29: memoized to avoid recreation
     if (userCache.current[uid]) return userCache.current[uid];
 
     const profile = await getUserProfile(uid);
@@ -26,8 +34,7 @@ export default function MessageList() {
 
     userCache.current[uid] = name;
     return name;
-  };
-
+  }, []);
 
   /* ---------- Loading skeletons (unchanged) ---------- */
   if (loading) {
@@ -54,7 +61,7 @@ export default function MessageList() {
   return (
     <div className="px-6 py-4 space-y-4">
       {messages.map((msg) => (
-        <AsyncMessage
+        <MemoAsyncMessage
           key={msg.id}
           message={msg}
           getSenderName={getSenderName}
@@ -66,9 +73,9 @@ export default function MessageList() {
 }
 
 /* =========================================================
-   Async message wrapper (logic unchanged, safely extended)
+   Async message wrapper (logic unchanged, NT-29 optimized)
    ========================================================= */
-function AsyncMessage({
+const MemoAsyncMessage = React.memo(function AsyncMessage({
   message,
   showSender,
   getSenderName,
@@ -83,7 +90,6 @@ function AsyncMessage({
     getSenderName(message.senderId).then((n: string) => {
       if (mounted) setName(n);
     });
-
 
     return () => {
       mounted = false;
@@ -101,4 +107,4 @@ function AsyncMessage({
       replyTo={message.replyTo}
     />
   );
-}
+});
