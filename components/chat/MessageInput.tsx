@@ -26,6 +26,9 @@ export default function MessageInput() {
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  /* ---------- Emoji picker ref (ADDED) ---------- */
+  const emojiRef = useRef<HTMLDivElement | null>(null);
+
   /* =========================================================
      Typing indicator (debounced & stable)
      ========================================================= */
@@ -71,6 +74,28 @@ export default function MessageInput() {
   }, [text, currentConversation]);
 
   /* =========================================================
+     Close emoji picker on outside click (ADDED)
+     ========================================================= */
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        emojiRef.current &&
+        !emojiRef.current.contains(e.target as Node)
+      ) {
+        setShowEmoji(false);
+      }
+    }
+
+    if (showEmoji) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmoji]);
+
+  /* =========================================================
      Send message
      ========================================================= */
   const handleSend = async () => {
@@ -92,6 +117,7 @@ export default function MessageInput() {
       setError("");
       await sendMessage(trimmedText);
       setText("");
+      setShowEmoji(false); // 👈 CLOSE EMOJI PICKER AFTER SEND (ADDED)
       clearComposerState?.();
 
       // Stop typing immediately after send
@@ -174,7 +200,10 @@ export default function MessageInput() {
         </button>
 
         {showEmoji && (
-          <div className="absolute bottom-full left-0 mb-2 z-50">
+          <div
+            ref={emojiRef}
+            className="absolute bottom-full left-0 mb-2 z-50"
+          >
             <EmojiPicker
               onEmojiClick={(e) =>
                 setText((prev) => prev + e.emoji)

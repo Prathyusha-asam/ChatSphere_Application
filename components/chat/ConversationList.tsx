@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
@@ -9,6 +10,9 @@ import {
   where,
   orderBy,
   onSnapshot,
+  doc,
+  deleteDoc,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,6 +50,13 @@ export default function ConversationList() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
+  /* ---------- RIGHT CLICK CONTEXT MENU STATE (ADDED) ---------- */
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    conversationId: string;
+  } | null>(null);
 
   /* ---------- Fetch conversations ---------- */
   useEffect(() => {
@@ -129,6 +140,34 @@ export default function ConversationList() {
     });
   }, [conversations, profiles, user]);
 
+  /* ---------- DELETE CONVERSATION HANDLER (ADDED) ---------- */
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      // 1. Delete all messages in this conversation
+      const msgsQuery = query(
+        collection(db, "messages"),
+        where("conversationId", "==", conversationId)
+      );
+
+      const msgsSnap = await getDocs(msgsQuery);
+      await Promise.all(msgsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // 2. Delete conversation document
+      await deleteDoc(doc(db, "conversations", conversationId));
+
+      // 3. Close context menu
+      setContextMenu(null);
+
+      // 4. Redirect if deleted conversation is open
+      if (activeCid === conversationId) {
+        router.push("/chat");
+      }
+    } catch (err) {
+      console.error("Delete conversation failed:", err);
+      alert("Failed to delete conversation");
+    }
+  };
+
   /* ---------- Date formatter ---------- */
   const formatDate = (date?: { toDate: () => Date } | null) => {
     if (!date) return "";
@@ -180,7 +219,7 @@ export default function ConversationList() {
   /* ---------- Error ---------- */
   if (error) {
     return (
-      <div className="w-80 flex flex-col items-center justify-center px-4 text-center">
+      <div className="w-80 flex items-center justify-center px-4 text-center">
         <EmptyState
           title="Something went wrong"
           description={error}
@@ -192,7 +231,7 @@ export default function ConversationList() {
     );
   }
 
-  /* ---------- Empty: no conversations ---------- */
+  /* ---------- Empty ---------- */
   if (!conversations.length) {
     return (
       <div className="flex flex-1 items-center justify-center px-4">
@@ -210,28 +249,22 @@ export default function ConversationList() {
 
   return (
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
-
       {/* Search */}
       <div className="p-3">
         <input
           placeholder="Search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-white
-                     px-3 py-2 text-sm text-gray-900
-                     placeholder-gray-400
-                     focus:outline-none focus:ring-2 focus:ring-gray-900/20"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-
-        {/* Empty: search */}
         {search && filteredConversations.length === 0 && (
           <EmptyState
             title="No results found"
-            description="Try a different name or clear your search."
+            description="Try a different name."
             icon="/images/empty-search.svg"
           />
         )}
@@ -246,7 +279,15 @@ export default function ConversationList() {
             <div
               key={c.id}
               onClick={() => openConversation(c.id)}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({
+                  x: e.pageX,
+                  y: e.pageY,
+                  conversationId: c.id,
+                });
+              }}
+              className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b
                 ${c.id === activeCid ? "bg-gray-100" : "hover:bg-gray-50"}`}
             >
               {profile?.photoURL ? (
@@ -256,15 +297,14 @@ export default function ConversationList() {
                   alt="Avatar"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-gray-900 text-white
-                                flex items-center justify-center text-sm font-medium">
+                <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm">
                   {profile?.displayName?.[0]?.toUpperCase() || "?"}
                 </div>
               )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-900 truncate">
+                  <span className="text-sm font-medium truncate">
                     {profile?.displayName || "Loading"}
                   </span>
 
@@ -274,10 +314,7 @@ export default function ConversationList() {
                     </span>
 
                     {unread > 0 && (
-                      <span className="min-w-[20px] h-5 px-1
-                                       flex items-center justify-center
-                                       rounded-full bg-gray-900 text-white
-                                       text-xs font-medium">
+                      <span className="min-w-[20px] h-5 px-1 rounded-full bg-black text-white text-xs flex items-center justify-center">
                         {unread}
                       </span>
                     )}
@@ -294,17 +331,34 @@ export default function ConversationList() {
       </div>
 
       {/* New chat */}
-      <div className="p-3 border-t border-gray-200">
+      <div className="p-3 border-t">
         <button
           onClick={() => setOpen(true)}
-          className="w-full rounded-lg bg-black py-2 text-sm font-medium
-                     text-white hover:bg-gray-800 transition"
+          className="w-full rounded-lg bg-black py-2 text-sm text-white"
         >
           + New chat
         </button>
       </div>
 
       {open && <StartConversation onClose={() => setOpen(false)} />}
+
+      {/* ---------- CONTEXT MENU UI (ADDED) ---------- */}
+      {contextMenu && (
+        <div
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          className="fixed z-50 w-40 rounded-lg border bg-white shadow-lg"
+          onMouseLeave={() => setContextMenu(null)}
+        >
+          <button
+            onClick={() =>
+              deleteConversation(contextMenu.conversationId)
+            }
+            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
+          >
+            Delete conversation
+          </button>
+        </div>
+      )}
     </div>
   );
 }
