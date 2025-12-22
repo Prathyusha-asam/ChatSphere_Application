@@ -7,6 +7,8 @@ import { useChat } from "@/hooks/useChat";
 import EmojiPicker from "emoji-picker-react";
 import LoadingSpinner from "../ui/LoadingSpinner";
 
+const MAX_CHARS = 500;
+
 export default function MessageInput() {
   const {
     currentConversation,
@@ -19,16 +21,17 @@ export default function MessageInput() {
 
   const [text, setText] = useState(editMessage?.text ?? "");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [error, setError] = useState("");
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   /* =========================================================
-     Typing indicator (FIXED with debounce)
+     Typing indicator (debounced & stable)
      ========================================================= */
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
 
-    // If text is empty → immediately stop typing
+    // Stop typing immediately if input is empty
     if (!text.trim()) {
       setTypingStatus(
         currentConversation.id,
@@ -45,12 +48,12 @@ export default function MessageInput() {
       true
     );
 
-    // Clear previous timer
+    // Clear previous debounce timer
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // ⏱ Stop typing after 2 seconds of inactivity
+    // Stop typing after 2s of inactivity
     typingTimeoutRef.current = setTimeout(() => {
       setTypingStatus(
         currentConversation.id,
@@ -70,17 +73,35 @@ export default function MessageInput() {
      Send message
      ========================================================= */
   const handleSend = async () => {
-    if (!text.trim() || !currentConversation) return;
+    if (!currentConversation || !auth.currentUser) return;
 
-    await sendMessage(text);
-    setText("");
+    const trimmedText = text.trim();
 
-    // Stop typing immediately after send
-    setTypingStatus(
-      currentConversation.id,
-      auth.currentUser!.uid,
-      false
-    );
+    if (!trimmedText) {
+      setError("Message cannot be empty");
+      return;
+    }
+
+    if (trimmedText.length > MAX_CHARS) {
+      setError(`Message cannot exceed ${MAX_CHARS} characters`);
+      return;
+    }
+
+    try {
+      setError("");
+      await sendMessage(trimmedText);
+      setText("");
+      clearComposerState?.();
+
+      // Stop typing immediately after send
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser.uid,
+        false
+      );
+    } catch {
+      setError("Failed to send message. Please try again.");
+    }
   };
 
   /* =========================================================
@@ -101,10 +122,15 @@ export default function MessageInput() {
   if (!currentConversation) return null;
 
   return (
-    <div className="relative" key={editMessage?.id ?? "new-message"}>
+    <div
+      className="relative"
+      key={editMessage?.id ?? "new-message"}
+    >
       {(replyTo || editMessage) && (
-        <div className="mb-2 flex items-center justify-between
-                        rounded-lg bg-gray-100 px-3 py-2 text-xs">
+        <div
+          className="mb-2 flex items-center justify-between
+                     rounded-lg bg-gray-100 px-3 py-2 text-xs"
+        >
           <div className="truncate">
             {editMessage ? (
               <span className="font-medium text-gray-700">
@@ -156,6 +182,12 @@ export default function MessageInput() {
           placeholder={editMessage ? "Edit message…" : "Message"}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.ctrlKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
           className="flex-1 rounded-full border border-gray-300 bg-white
                      px-4 py-2 text-sm text-gray-900
                      focus:outline-none focus:ring-2 focus:ring-gray-900/20"
@@ -170,6 +202,20 @@ export default function MessageInput() {
         >
           {loading ? <LoadingSpinner size={16} /> : "Send"}
         </button>
+      </div>
+
+      {/* Error + character count */}
+      <div className="mt-1 flex items-center justify-between px-2 text-xs">
+        <span className="text-red-500">{error}</span>
+        <span
+          className={
+            text.length > MAX_CHARS
+              ? "text-red-500"
+              : "text-gray-400"
+          }
+        >
+          {text.length}/{MAX_CHARS}
+        </span>
       </div>
     </div>
   );

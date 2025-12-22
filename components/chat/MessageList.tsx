@@ -3,7 +3,7 @@
 "use client";
 
 import MessageSkeleton from "@/components/skeletons/MessageSkeleton";
-import { useEffect, useRef, useState, useCallback } from "react"; // NT-29: added useCallback
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
 import { getUserProfile } from "@/lib/firestore";
@@ -13,30 +13,34 @@ export default function MessageList() {
   const { messages, loading } = useChat();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const userCache = useRef<Record<string, string>>({});
-  const prevCountRef = useRef<number>(0); // NT-29: track message count
+  const prevCountRef = useRef<number>(0);
 
-  /* ---------- Auto scroll to bottom (behavior preserved, optimized) ---------- */
+  /* ---------- Auto scroll to bottom (NT-29 optimized) ---------- */
   useEffect(() => {
-    // NT-29: scroll only when a new message arrives
     if (messages.length > prevCountRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     prevCountRef.current = messages.length;
   }, [messages]);
 
-  // Load sender names (cached)
+  /* ---------- Load sender names (cached + memoized) ---------- */
   const getSenderName = useCallback(async (uid: string) => {
-    // NT-29: memoized to avoid recreation
-    if (userCache.current[uid]) return userCache.current[uid];
+    if (userCache.current[uid]) {
+      return userCache.current[uid];
+    }
 
-    const profile = await getUserProfile(uid);
-    const name = profile?.displayName || "Unknown";
-
-    userCache.current[uid] = name;
-    return name;
+    try {
+      const profile = await getUserProfile(uid);
+      const name = profile?.displayName || "Unknown";
+      userCache.current[uid] = name;
+      return name;
+    } catch (err) {
+      console.error("Failed to load sender name:", err);
+      return "Unknown";
+    }
   }, []);
 
-  /* ---------- Loading skeletons (unchanged) ---------- */
+  /* ---------- Loading skeletons ---------- */
   if (loading) {
     return (
       <div className="px-6 py-4 space-y-4">
@@ -47,7 +51,7 @@ export default function MessageList() {
     );
   }
 
-  /* ---------- Empty state (unchanged) ---------- */
+  /* ---------- Empty state ---------- */
   if (!messages.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -73,13 +77,15 @@ export default function MessageList() {
 }
 
 /* =========================================================
-   Async message wrapper (logic unchanged, NT-29 optimized)
+   Async message wrapper (NT-29 optimized)
    ========================================================= */
 const MemoAsyncMessage = React.memo(function AsyncMessage({
   message,
-  showSender,
   getSenderName,
-}: any) {
+}: {
+  message: any;
+  getSenderName: (uid: string) => Promise<string>;
+}) {
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -87,14 +93,14 @@ const MemoAsyncMessage = React.memo(function AsyncMessage({
 
     let mounted = true;
 
-    getSenderName(message.senderId).then((n: string) => {
+    getSenderName(message.senderId).then((n) => {
       if (mounted) setName(n);
     });
 
     return () => {
       mounted = false;
     };
-  }, [message?.senderId, getSenderName]);
+  }, [message.senderId, getSenderName]);
 
   return (
     <MessageItem

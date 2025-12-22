@@ -25,14 +25,20 @@ export default function HeaderTypingIndicator() {
     }
 
     const loadNames = async () => {
-      const resolved = await Promise.all(
-        typingUserIds.map(async (uid) => {
-          const profile = await getUserProfile(uid);
-          return profile?.displayName || "Someone";
-        })
-      );
-      setNames(resolved);
-    };
+  try {
+    const resolved = await Promise.all(
+      typingUserIds.map(async (uid) => {
+        const profile = await getUserProfile(uid);
+        return profile?.displayName || "Someone";
+      })
+    );
+    setNames(resolved);
+  } catch (err) {
+    console.error("Typing indicator error:", err);
+    setNames([]);
+  }
+};
+
 
     loadNames();
   }, [typingUserIds]);

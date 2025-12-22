@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import { AuthProvider } from "@/context/AuthContext";
 import "devextreme/dist/css/dx.light.css";
+import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 
 // #region Metadata Configuration
 // Global metadata applied to all pages in the application
@@ -23,12 +24,14 @@ export default function RootLayout({
     // #region HTML Structure
     <html lang="en">
       <body>
+        <ErrorBoundary>
         <AuthProvider>
           {/* Global Navigation */}
           <Navbar />
           {/* Page Content */}
           {children}
         </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
     // #endregion HTML Structure

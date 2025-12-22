@@ -52,13 +52,16 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
       try {
+        setError("");
         const data = await getUserProfile(user.uid);
+
         if (data) {
           setProfile(data as UserProfile);
           setDisplayName(data.displayName || "");
         }
-      } catch {
-        setError("Failed to load profile");
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        setError("Unable to load profile. Please try again.");
       }
     };
 
@@ -239,6 +242,19 @@ export default function ProfilePage() {
               {error}
             </p>
           )}
+
+          {error && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-red-600">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-1 text-sm underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
     </AuthGuard>

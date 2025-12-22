@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react"; // NT-29: added useCallback
+import { useEffect, useRef, useState, useCallback } from "react";
 import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
@@ -83,11 +83,15 @@ function MessageItem({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ---------- Delete ---------- */
+  /* ---------- Delete (MERGED + NT-29) ---------- */
   const handleDelete = useCallback(async () => {
     if (!id || !currentConversation) return;
-    await deleteMessage(currentConversation.id, id);
-    setMenuOpen(false);
+
+    try {
+      await deleteMessage(currentConversation.id, id);
+    } catch (err) {
+      setMenuOpen(false);
+    }
   }, [id, currentConversation]);
 
   /* ---------- Reply ---------- */
@@ -123,7 +127,8 @@ function MessageItem({
           {/* Reply preview */}
           {replyTo && (
             <div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
-              Replying to: <span className="italic">{replyTo.text}</span>
+              Replying to:{" "}
+              <span className="italic">{replyTo.text}</span>
             </div>
           )}
 
@@ -157,9 +162,7 @@ function MessageItem({
         >
           <MenuItem label="Reply" onClick={handleReply} />
 
-          {isMine && (
-            <MenuItem label="Edit" onClick={handleEdit} />
-          )}
+          {isMine && <MenuItem label="Edit" onClick={handleEdit} />}
 
           {isMine && (
             <>
