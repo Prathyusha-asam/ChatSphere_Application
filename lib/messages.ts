@@ -60,13 +60,19 @@ export async function updateMessage(
   messageId: string,
   text: string
 ) {
+  const msg = text.trim();
+  if (!msg) return;
+
+  /* 🔧 1. Update message text + editedAt */
   await updateDoc(doc(db, "messages", messageId), {
-    text,
-    editedAt: serverTimestamp(),
+    text: msg,
+    editedAt: serverTimestamp(), 
   });
 
+  /* 🔧 2. Keep conversation metadata consistent */
   await updateDoc(doc(db, "conversations", conversationId), {
-    lastMessage: text,
+    lastMessage: msg,
+    lastMessageAt: serverTimestamp(),
   });
 }
 

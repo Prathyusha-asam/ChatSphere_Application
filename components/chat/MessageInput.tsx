@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { ChangeEvent } from "react";
 import { auth } from "@/lib/firebase";
 import { setTypingStatus } from "@/lib/typing";
 import { useChat } from "@/hooks/useChat";
@@ -15,24 +16,49 @@ export default function MessageInput() {
     currentConversation,
     sendMessage,
     loading,
-    replyTo,
     editMessage,
+    replyTo,
     clearComposerState,
   } = useChat();
 
+  /* ---------------------------------------------------------
+     State (initialized once per edit via remount key)
+  --------------------------------------------------------- */
   const [text, setText] = useState(editMessage?.text ?? "");
   const [showEmoji, setShowEmoji] = useState(false);
   const [error, setError] = useState("");
 
+  /* ---------------------------------------------------------
+     Typing indicator (combined logic)
+  --------------------------------------------------------- */
+  const isTypingRef = useRef(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  /* =========================================================
-     Typing indicator (debounced & stable)
-     ========================================================= */
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setText(value);
+
+    if (!auth.currentUser || !currentConversation) return;
+
+    const typingNow = value.trim().length > 0;
+
+    // Immediate typing state update
+    if (isTypingRef.current !== typingNow) {
+      isTypingRef.current = typingNow;
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser.uid,
+        typingNow
+      );
+    }
+  };
+
+  /* ---------------------------------------------------------
+     Debounced typing stop (2s inactivity)
+  --------------------------------------------------------- */
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
 
-    // Stop typing immediately if input is empty
     if (!text.trim()) {
       setTypingStatus(
         currentConversation.id,
@@ -42,25 +68,17 @@ export default function MessageInput() {
       return;
     }
 
-    // User is typing
-    setTypingStatus(
-      currentConversation.id,
-      auth.currentUser.uid,
-      true
-    );
-
-    // Clear previous debounce timer
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Stop typing after 2s of inactivity
     typingTimeoutRef.current = setTimeout(() => {
       setTypingStatus(
         currentConversation.id,
         auth.currentUser!.uid,
         false
       );
+      isTypingRef.current = false;
     }, 2000);
 
     return () => {
@@ -70,9 +88,9 @@ export default function MessageInput() {
     };
   }, [text, currentConversation]);
 
-  /* =========================================================
+  /* ---------------------------------------------------------
      Send message
-     ========================================================= */
+  --------------------------------------------------------- */
   const handleSend = async () => {
     if (!currentConversation || !auth.currentUser) return;
 
@@ -91,10 +109,12 @@ export default function MessageInput() {
     try {
       setError("");
       await sendMessage(trimmedText);
+
       setText("");
       clearComposerState?.();
 
       // Stop typing immediately after send
+      isTypingRef.current = false;
       setTypingStatus(
         currentConversation.id,
         auth.currentUser.uid,
@@ -105,9 +125,9 @@ export default function MessageInput() {
     }
   };
 
-  /* =========================================================
+  /* ---------------------------------------------------------
      Cleanup on unmount (IMPORTANT)
-     ========================================================= */
+  --------------------------------------------------------- */
   useEffect(() => {
     return () => {
       if (auth.currentUser && currentConversation) {
@@ -125,32 +145,27 @@ export default function MessageInput() {
   return (
     <div
       className="relative"
-      key={editMessage?.id ?? "new-message"}
+      key={editMessage?.id ?? "new-message"} // 🔑 critical for edit remount
     >
-      {(replyTo || editMessage) && (
-        <div
-          className="mb-2 flex items-center justify-between
-                     rounded-lg bg-gray-100 px-3 py-2 text-xs"
-        >
+      {/* EDIT / REPLY INDICATOR */}
+      {(editMessage || replyTo) && (
+        <div className="mb-2 flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2 text-xs">
           <div className="truncate">
-            {editMessage ? (
-              <span className="font-medium text-gray-700">
-                Editing message
-              </span>
-            ) : (
-              <>
-                <span className="font-medium text-gray-700">
-                  Replying to:
-                </span>{" "}
-                <span className="italic text-gray-600">
-                  {replyTo?.text}
-                </span>
-              </>
+            <span className="font-medium text-gray-700">
+              {editMessage ? "Editing message" : "Replying to"}
+            </span>
+            {!editMessage && (
+              <div className="italic text-gray-600 truncate">
+                {replyTo?.text}
+              </div>
             )}
           </div>
 
           <button
-            onClick={clearComposerState}
+            onClick={() => {
+              setText("");
+              clearComposerState();
+            }}
             className="text-gray-500 hover:text-gray-700"
           >
             ✕
@@ -158,6 +173,7 @@ export default function MessageInput() {
         </div>
       )}
 
+      {/* INPUT ROW */}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -185,9 +201,9 @@ export default function MessageInput() {
 
         <input
           type="text"
-          placeholder={editMessage ? "Edit message…" : "Message"}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          placeholder={editMessage ? "Edit message…" : "Message"}
+          onChange={handleChange}
           onKeyDown={(e) => {
             if (e.key === "Enter" && e.ctrlKey) {
               e.preventDefault();
