@@ -51,7 +51,7 @@ export default function RegisterForm() {
       setLoading(true);
       await signUp(email, password, displayName);
       setSuccess("Account created successfully. Redirecting...");
-      setTimeout(() => router.push("/auth/login"), 1500);
+      router.push("/auth/login");
     } catch (err: unknown) {
       setError(getAuthErrorMessage(err));
     } finally {
