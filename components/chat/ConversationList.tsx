@@ -14,9 +14,9 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getUserProfile } from "@/lib/firestore";
-import StartConversation from "./StartConversation";
 import ConversationSkeleton from "@/components/skeletons/ConversationsSkeleton";
 import EmptyState from "@/components/ui/EmptyState";
+import StartConversation from "./StartConversation";
 
 /* ---------- Types ---------- */
 interface ConversationItem {

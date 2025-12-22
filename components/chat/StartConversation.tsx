@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { createConversation } from "@/lib/conversations";
 import { useRouter } from "next/navigation";
-import EmptyState from "@/components/ui/EmptyState"; // ✅ added
+import EmptyState from "@/components/ui/EmptyState";
 
 interface User {
   userId: string;
@@ -33,6 +33,8 @@ export default function StartConversation({
     async function loadUsers() {
       try {
         setLoading(true);
+        setError("");
+
         const snap = await getDocs(collection(db, "users"));
         const list: User[] = [];
 
@@ -55,7 +57,7 @@ export default function StartConversation({
     loadUsers();
   }, [user]);
 
-  /* ---------- NT-29: memoized filter ---------- */
+  /* ---------- Memoized filter ---------- */
   const filtered = useMemo(() => {
     return users.filter((u) =>
       (u.displayName || "")
@@ -64,7 +66,7 @@ export default function StartConversation({
     );
   }, [users, search]);
 
-  /* ---------- NT-29: memoized start chat (MERGED) ---------- */
+  /* ---------- Memoized start chat ---------- */
   const startChat = useCallback(
     async (otherUserId: string) => {
       if (!user) return;
@@ -73,26 +75,24 @@ export default function StartConversation({
         setLoading(true);
         setError("");
 
-  const startChat = async (otherUserId: string) => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      const cid = await createConversation(user.uid, otherUserId);
-      onClose();
-      router.push(`/chat?cid=${cid}`);
-    } catch (err) {
-      console.error("Start conversation failed:", err);
-      setError("Unable to start chat. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+        const cid = await createConversation(user.uid, otherUserId);
+        onClose();
+        router.push(`/chat?cid=${cid}`);
+      } catch (err) {
+        console.error("Start conversation failed:", err);
+        setError("Unable to start chat. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, router, onClose]
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       {/* Modal */}
       <div className="w-full max-w-sm rounded-xl bg-white shadow-lg">
+
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-200">
           <h2 className="text-sm font-medium text-gray-900">
@@ -122,7 +122,7 @@ export default function StartConversation({
 
         {/* User list */}
         <div className="max-h-64 overflow-y-auto px-2 pb-2">
-          {filtered.length === 0 && !loading && (
+          {!loading && filtered.length === 0 && (
             <EmptyState
               title="No users found"
               description="Try searching with a different name."
