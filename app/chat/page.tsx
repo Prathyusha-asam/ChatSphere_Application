@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
- 
+
 import AuthGuard from "@/components/layout/AuthGuard";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useChat } from "@/hooks/useChat";
 
@@ -13,11 +13,9 @@ import MessageList from "@/components/chat/MessageList";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 
 export default function ChatPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("cid");
   const { startConversation } = useChat();
-  const { conversations, loading, error } = useConversations();
 
   useEffect(() => {
     if (conversationId) {
@@ -27,10 +25,6 @@ export default function ChatPage() {
       });
     }
   }, [conversationId]);
-
-  const handleSelectConversation = (id: string) => {
-    router.push(`/chat?cid=${id}`);
-  };
 
   return (
     <AuthGuard>

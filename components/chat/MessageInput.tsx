@@ -35,44 +35,17 @@ export default function MessageInput() {
     );
   }, [text, currentConversation]);
 
-  /* ------------------------------------
-     Send Message
-  ------------------------------------ */
   const handleSend = async () => {
-    if (!text.trim()) return;
-    if (!currentConversation) return;
+    if (!text.trim() || !currentConversation) return;
 
-    try {
-      setError(null);
-      await sendMessage(text.trim());
-      setText("");
-      setShowEmoji(false);
+    await sendMessage(text);
+    setText("");
 
-      setTypingStatus(
-        currentConversation.id,
-        auth.currentUser!.uid,
-        false
-      );
-    } catch (err) {
-      setError("Failed to send message. Please try again.");
-    }
-  };
-
-  /* ------------------------------------
-     Ctrl + Enter Support
-  ------------------------------------ */
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && e.ctrlKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  /* ------------------------------------
-     Emoji Click
-  ------------------------------------ */
-  const onEmojiClick = (emojiData: EmojiClickData) => {
-    setText((prev) => prev + emojiData.emoji);
+    setTypingStatus(
+      currentConversation.id,
+      auth.currentUser!.uid,
+      false
+    );
   };
 
   if (!currentConversation) return null;
