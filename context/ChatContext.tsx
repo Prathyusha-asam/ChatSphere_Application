@@ -171,7 +171,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           isRead: true,
         });
       } catch (err) {
-        console.error("🔥 SEEN UPDATE FAILED:", err);
+        console.error(" SEEN UPDATE FAILED:", err);
       }
     });
   }, [messages, currentConversation?.id, user?.uid]);

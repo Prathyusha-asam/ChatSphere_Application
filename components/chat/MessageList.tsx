@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useChat } from "@/hooks/useChat";
 import MessageItem from "./MessageItem";
 import { getUserProfile } from "@/lib/firestore";
-import EmptyState from "@/components/ui/EmptyState"; // ✅ added
+import EmptyState from "@/components/ui/EmptyState";
 import React from "react";
 //region MessageList Component
 /**
