@@ -21,64 +21,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { sendMessage as sendMessageToDb } from "@/lib/sendMessage";
 import { updateMessage } from "@/lib/messages";
-//region Types
-/**
- * Message
- *
- * Represents a single chat message
- */
-export interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  createdAt: any;
-  editedAt?: any;
-  replyTo?: {
-    id: string;
-    text: string;
-    senderId?: string;
-  };
-  isRead?: boolean;
-  deliveredAt?: any;
-}
-/**
- * Conversation
- *
- * Represents an active chat conversation
- */
-export interface Conversation {
-  id: string;
-  participants: string[];
-}
-/**
- * ChatContextType
- *
- * Shape of chat context state and actions
- */
-export interface ChatContextType {
-  /* ---------- CORE ---------- */
-  messages: Message[];
-  currentConversation: Conversation | null;
-  loading: boolean;
-  error: string | null;
-  startConversation: (conversation: Conversation) => void;
-  sendMessage: (text: string) => Promise<void>;
-  clearConversation: () => void;
-  /* ---------- COMPOSER STATE ---------- */
-  replyTo: {
-    id: string;
-    text: string;
-    senderId: string;
-  } | null;
-  editMessage: {
-    id: string;
-    text: string;
-  } | null;
-  setReplyTo: (msg: ChatContextType["replyTo"]) => void;
-  setEditMessage: (msg: ChatContextType["editMessage"]) => void;
-  clearComposerState: () => void;
-}
-//endregion Types
+import { Conversation, MessageItemProps,ChatContextType } from "@/types/firestore";
 //region Context
 /**
  * ChatContext
@@ -107,7 +50,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   //region Dependencies
   const { user } = useAuth();
   //region State
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageItemProps[]>([]);
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -134,9 +77,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const msgs: Message[] = snapshot.docs.map((doc) => ({
+        const msgs: MessageItemProps[] = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...(doc.data() as Omit<Message, "id">),
+          ...(doc.data() as Omit<MessageItemProps, "id">),
         }));
         setMessages(msgs);
         setLoading(false);

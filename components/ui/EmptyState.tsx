@@ -1,35 +1,6 @@
 "use client";
 import Image from "next/image";
-//region Props
-/**
- * EmptyStateProps
- *
- * Props for rendering an empty or no-data state.
- */
-interface EmptyStateProps {
-  /**
-   * Primary title text
-   */
-  title: string;
-  /**
-    * Optional description text
-    */
-  description?: string;
-  /**
-   * Optional icon image path
-   * @default "/images/empty-box.svg"
-   */
-  icon?: string;
-  /**
-   * Optional action button label
-   */
-  actionLabel?: string;
-  /**
-   * Optional action callback
-   */
-  onAction?: () => void;
-}
-//endregion Props
+import { EmptyStateProps } from "@/types/firestore";
 //region EmptyState Component
 /**
  * EmptyState

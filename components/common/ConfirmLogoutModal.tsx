@@ -1,28 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useState } from "react";
-//region Props
-/**
- * ConfirmLogoutModalProps
- *
- * Props for the logout confirmation modal.
- */
-interface ConfirmLogoutModalProps {
-  /**
-   * Controls modal visibility
-   */
-  open: boolean;
-  /**
-   * Called when user cancels the logout
-   */
-  onCancel: () => void;
-  /**
-   * Called when user confirms logout
-   * Async-safe to allow awaiting sign-out logic
-   */
-  onConfirm: () => Promise<void>;
-}
-//endregion Props
+import {ConfirmLogoutModalProps} from "@/types/firestore";
 //region ConfirmLogoutModal Component
 /**
  * ConfirmLogoutModal

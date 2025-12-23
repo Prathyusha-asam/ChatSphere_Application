@@ -2,19 +2,13 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
-export interface PresenceUser {
-  id: string;
-  userId: string;
-  displayName: string;
-  isOnline: boolean;
-  photoURL?: string;
-}
+import { UserProfile } from "@/types/firestore";
 export function useUserPresence() {
   //region State Management
   /**
    * Stores list of users with presence information
    */
-  const [users, setUsers] = useState<PresenceUser[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   //endregion
   //region User Presence Effect
   useEffect(() => {
@@ -42,10 +36,10 @@ export function useUserPresence() {
          * Maps Firestore documents to PresenceUser objects,
          * hides current user, and sorts online users first
          */
-        const list: PresenceUser[] = snapshot.docs
+        const list: UserProfile[] = snapshot.docs
           .map((doc) => ({
             id: doc.id,
-            ...(doc.data() as Omit<PresenceUser, "id">),
+            ...(doc.data() as Omit<UserProfile, "id">),
           }))
           .filter((u) => u.userId !== auth.currentUser?.uid)
           .sort((a, b) => Number(b.isOnline) - Number(a.isOnline));

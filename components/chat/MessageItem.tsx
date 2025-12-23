@@ -6,35 +6,8 @@ import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
 import React from "react";
 import Image from "next/image";
-//region Types
-/**
- * MessageItemProps
- *
- * Props for rendering a single chat message
- */
-interface MessageItemProps {
-  id: string;
-  text: string;
-  senderName: string;
-  senderId: string;
-  createdAt?: {
-    toDate: () => Date;
-  };
-  editedAt?: {
-    toDate?: () => Date;
-  };
-  replyTo?: {
-    id: string;
-    text: string;
-    senderId?: string;
-  };
-  // ADD (NON-BREAKING)
-  imageUrl?: string | null;
-  isRead?: boolean;
-  deliveredAt?: any;
-}
-//endregion Types
-//region MessageItem Component
+import { MessageItemProps } from "@/types/firestore";
+
 /**
  * MessageItem
  *

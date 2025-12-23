@@ -15,40 +15,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { updateUserProfile } from "@/lib/firestore";
-//region Types
-/**
- * AuthUser
- *
- * Normalized user object exposed to the application
- */
-export interface AuthUser {
-  uid: string;
-  email: string | null;
-  displayName?: string | null;
-}
-/**
- * AuthContextType
- *
- * Shape of authentication context
- */
-interface AuthContextType {
-  user: AuthUser | null;
-  loading: boolean;
-  error: string | null;
-  /**
-   * Logs in an existing user
-   */
-  login: (email: string, password: string) => Promise<void>;
-  /**
-   * Registers a new user
-   */
-  register: (email: string, password: string) => Promise<void>;
-  /**
-  * Logs out the current user
-  */
-  logout: () => Promise<void>;
-}
-//endregion Types
+import { AuthUser, AuthContextType } from "@/types/firestore";
 //region Context
 /**
  * AuthContext
