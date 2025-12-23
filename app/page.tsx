@@ -1,16 +1,28 @@
 import PromptCard from "@/components/layout/PromptCard";
 import Link from "next/link";
-
+//region HomePage Component
+/**
+ * HomePage
+ *
+ * Public landing page of the application.
+ * - Displays hero section with product messaging
+ * - Provides call-to-action links for registration and login
+ * - Highlights core platform features using prompt cards
+ *
+ * @returns JSX.Element - Application home page
+ */
 export default function HomePage() {
+  //region Render
+  /**
+   * Renders the home page layout
+   */
   return (
     <main className="min-h-[calc(100vh-72px)] bg-white px-6 flex flex-col items-center justify-center">
-
       {/* Hero */}
       <section className="text-center max-w-4xl w-full">
         <p className="text-sm text-gray-500 mb-4">
           Chat Platform
         </p>
-
         <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 leading-tight mb-6">
           Connect instantly.
           <br />
@@ -18,7 +30,6 @@ export default function HomePage() {
           <br />
           Be more productive.
         </h1>
-
         {/* CTA Buttons */}
         <div className="flex items-center justify-center gap-4 mb-16">
           {/* Primary */}
@@ -28,7 +39,6 @@ export default function HomePage() {
           >
             Get started
           </Link>
-
           {/* Secondary */}
           <Link
             href="/auth/login"
@@ -38,7 +48,6 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
-
       {/* Prompt Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-5xl w-full">
         <PromptCard text="Chat securely with real-time updates" />
@@ -50,4 +59,6 @@ export default function HomePage() {
       </section>
     </main>
   );
+  //endregion Render
 }
+//endregion HomePage Component

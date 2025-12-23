@@ -1,6 +1,6 @@
 export type Conversation = {
   id: string;
-  participants: string[];      // user names
+  participants: string[];
   lastMessage: string;
-  lastMessageTime: string;     // ISO string
+  lastMessageTime: string;
 };

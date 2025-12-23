@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
-
 export interface PresenceUser {
   id: string;
   userId: string;
@@ -10,38 +9,71 @@ export interface PresenceUser {
   isOnline: boolean;
   photoURL?: string;
 }
-
 export function useUserPresence() {
+  //region State Management
+  /**
+   * Stores list of users with presence information
+   */
   const [users, setUsers] = useState<PresenceUser[]>([]);
-
+  //endregion
+  //region User Presence Effect
   useEffect(() => {
-    // 🔒 DO NOT subscribe until auth is ready
+    //region Auth Validation
+    /**
+     * Prevents Firestore subscription until auth is ready
+     */
     if (!auth.currentUser) return;
-
+    //endregion
+    //region Firestore Query
+    /**
+     * Queries all users for presence tracking
+     */
     const q = query(collection(db, "users"));
-
+    //endregion
+    //region Real-time Listener
+    /**
+     * Subscribes to real-time user presence updates
+     */
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        //region Map & Process User Data
+        /**
+         * Maps Firestore documents to PresenceUser objects,
+         * hides current user, and sorts online users first
+         */
         const list: PresenceUser[] = snapshot.docs
           .map((doc) => ({
             id: doc.id,
             ...(doc.data() as Omit<PresenceUser, "id">),
           }))
-          // 🔹 ADDED: hide current logged-in user
           .filter((u) => u.userId !== auth.currentUser?.uid)
-          // 🔹 ADDED: online users first (UX improvement)
           .sort((a, b) => Number(b.isOnline) - Number(a.isOnline));
-
+        //endregion
         setUsers(list);
       },
       (error) => {
+        //region Error Handling
+        /**
+         * Handles Firestore presence listener errors
+         */
         console.error("Presence listener error:", error);
+        //endregion
       }
     );
-
+    //endregion
+    //region Return Hook Data
+    /**
+     * Returns list of users with presence status
+     */
     return () => unsubscribe();
   }, []);
-
+  //endregion
+  //region Return Hook Data
+  /**
+   * Returns list of users with presence status
+   */
   return users;
+  //endregion
 }
+

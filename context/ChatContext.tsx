@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-
 import {
   createContext,
   useEffect,
@@ -22,11 +21,12 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { sendMessage as sendMessageToDb } from "@/lib/sendMessage";
 import { updateMessage } from "@/lib/messages";
-
-/* =========================================================
-   TYPES
-   ========================================================= */
-
+//region Types
+/**
+ * Message
+ *
+ * Represents a single chat message
+ */
 export interface Message {
   id: string;
   senderId: string;
@@ -41,80 +41,96 @@ export interface Message {
   isRead?: boolean;
   deliveredAt?: any;
 }
-
+/**
+ * Conversation
+ *
+ * Represents an active chat conversation
+ */
 export interface Conversation {
   id: string;
   participants: string[];
 }
-
+/**
+ * ChatContextType
+ *
+ * Shape of chat context state and actions
+ */
 export interface ChatContextType {
   /* ---------- CORE ---------- */
   messages: Message[];
   currentConversation: Conversation | null;
   loading: boolean;
   error: string | null;
-
   startConversation: (conversation: Conversation) => void;
   sendMessage: (text: string) => Promise<void>;
   clearConversation: () => void;
-
   /* ---------- COMPOSER STATE ---------- */
   replyTo: {
     id: string;
     text: string;
     senderId: string;
   } | null;
-
   editMessage: {
     id: string;
     text: string;
   } | null;
-
   setReplyTo: (msg: ChatContextType["replyTo"]) => void;
   setEditMessage: (msg: ChatContextType["editMessage"]) => void;
   clearComposerState: () => void;
 }
-
+//endregion Types
+//region Context
+/**
+ * ChatContext
+ *
+ * Global chat state container
+ */
 export const ChatContext = createContext<ChatContextType | undefined>(
   undefined
 );
-
-/* =========================================================
-   PROVIDER
-   ========================================================= */
-
+//endregion Context
+//region ChatProvider Component
+/**
+ * ChatProvider
+ *
+ * Provides real-time chat state and actions.
+ * Responsibilities:
+ * - Subscribe to messages in active conversation
+ * - Track read/unread state
+ * - Handle send, edit, reply flows
+ * - Manage composer state
+ *
+ * @param children - Application subtree
+ * @returns JSX.Element - Context provider
+ */
 export function ChatProvider({ children }: { children: ReactNode }) {
+  //region Dependencies
   const { user } = useAuth();
-
-  /* ---------- STATE ---------- */
+  //region State
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [replyTo, setReplyTo] =
     useState<ChatContextType["replyTo"]>(null);
-
   const [editMessage, setEditMessage] =
     useState<ChatContextType["editMessage"]>(null);
-
-  /* =========================================================
-     LISTEN FOR MESSAGES
-     ========================================================= */
-
+  //endregion State
+  //region Message Listener
+  /**
+   * Subscribes to messages of the active conversation
+   * Updates in real time using Firestore snapshot listener
+   */
   useEffect(() => {
     if (!currentConversation) return;
-
     setLoading(true);
     setError(null);
-
     const q = query(
       collection(db, "messages"),
       where("conversationId", "==", currentConversation.id),
       orderBy("createdAt", "asc")
     );
-
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -122,7 +138,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           id: doc.id,
           ...(doc.data() as Omit<Message, "id">),
         }));
-
         setMessages(msgs);
         setLoading(false);
       },
@@ -131,43 +146,42 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     );
-
     return () => unsubscribe();
   }, [currentConversation]);
-
-  /* =========================================================
-   ✅ MARK MESSAGES AS SEEN (FINAL, GUARANTEED)
-   ========================================================= */
-
-useEffect(() => {
-  if (!user || !currentConversation) return;
-  if (!messages.length) return;
-
-  const unreadMessages = messages.filter(
-    (msg) =>
-      msg.senderId !== user.uid &&
-      msg.isRead !== true
-  );
-
-  if (!unreadMessages.length) return;
-
-  unreadMessages.forEach(async (msg) => {
-    try {
-      await updateDoc(doc(db, "messages", msg.id), {
-        isRead: true,
-      });
-    } catch (err) {
-      console.error("🔥 SEEN UPDATE FAILED:", err);
-    }
-  });
-}, [messages, currentConversation?.id, user?.uid]);
-
-
-
-  /* =========================================================
-     ACTIONS
-     ========================================================= */
-
+  //endregion Message Listener
+  //region Mark Messages As Read
+  /**
+   * Marks unread messages as read
+   * Ensures:
+   * - Only messages from other users are updated
+   * - Read receipts are reliable and idempotent
+   */
+  useEffect(() => {
+    if (!user || !currentConversation) return;
+    if (!messages.length) return;
+    const unreadMessages = messages.filter(
+      (msg) =>
+        msg.senderId !== user.uid &&
+        msg.isRead !== true
+    );
+    if (!unreadMessages.length) return;
+    unreadMessages.forEach(async (msg) => {
+      try {
+        await updateDoc(doc(db, "messages", msg.id), {
+          isRead: true,
+        });
+      } catch (err) {
+        console.error(" SEEN UPDATE FAILED:", err);
+      }
+    });
+  }, [messages, currentConversation?.id, user?.uid]);
+  //endregion Mark Messages As Read
+  //region Actions
+  /**
+   * Sets active conversation
+   *
+   * @param conversation - Conversation to activate
+   */
   const startConversation = (conversation: Conversation) => {
     setCurrentConversation((prev) =>
       prev?.id === conversation.id ? prev : conversation
@@ -175,11 +189,14 @@ useEffect(() => {
     setMessages([]);
     clearComposerState();
   };
-
+  /**
+    * Sends or edits a message
+    *
+    * @param text - Message text
+    */
   const sendMessage = async (text: string) => {
     if (!user || !currentConversation) return;
-
-    // ✏️ Edit existing message
+    //  Edit existing message
     if (editMessage) {
       await updateMessage(
         currentConversation.id,
@@ -189,33 +206,35 @@ useEffect(() => {
       clearComposerState();
       return;
     }
-
-    // 📩 Send new message
+    //  Send new message
     await sendMessageToDb(
       currentConversation.id,
       user.uid,
       text,
       replyTo
     );
-
     clearComposerState();
   };
-
+  /**
+     * Clears active conversation
+     */
   const clearConversation = () => {
     setCurrentConversation(null);
     setMessages([]);
     clearComposerState();
   };
-
+  /**
+    * Clears reply/edit composer state
+    */
   const clearComposerState = () => {
     setReplyTo(null);
     setEditMessage(null);
   };
-
-  /* =========================================================
-     PROVIDER VALUE
-     ========================================================= */
-
+  //endregion Actions
+  //region Provider Render
+  /**
+   * Exposes chat state and actions
+   */
   return (
     <ChatContext.Provider
       value={{
@@ -236,12 +255,18 @@ useEffect(() => {
       {children}
     </ChatContext.Provider>
   );
+  //endregion Provider Render
 }
-
-/* =========================================================
-   SAFE HOOK
-   ========================================================= */
-
+//endregion ChatProvider Component
+//region useChat Hook
+/**
+ * useChat
+ *
+ * Safe hook for accessing chat context.
+ * Must be used inside ChatProvider.
+ *
+ * @returns ChatContextType
+ */
 export function useChat(): ChatContextType {
   const ctx = useContext(ChatContext);
   if (!ctx) {
@@ -249,3 +274,4 @@ export function useChat(): ChatContextType {
   }
   return ctx;
 }
+//endregion useChat Hook

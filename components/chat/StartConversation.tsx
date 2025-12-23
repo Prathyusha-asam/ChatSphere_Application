@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -8,43 +7,64 @@ import { useAuth } from "@/hooks/useAuth";
 import { createConversation } from "@/lib/conversations";
 import { useRouter } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";
-
+//region Types
+/**
+ * User
+ *
+ * Represents a selectable user for starting a conversation
+ */
 interface User {
   userId: string;
   displayName?: string;
   photoURL?: string;
 }
-
+//endregion Types
+//region StartConversation Component
+/**
+ * StartConversation
+ *
+ * Modal for initiating a new one-to-one chat.
+ * - Loads all users from Firestore (excluding current user)
+ * - Supports searching users by display name
+ * - Creates or reuses a conversation
+ * - Redirects to chat on success
+ *
+ * @param onClose - Callback to close the modal
+ * @returns JSX.Element - Start conversation modal
+ */
 export default function StartConversation({
   onClose,
 }: {
   onClose: () => void;
 }) {
+  //region Hooks & State
+  /**
+   * Authentication, routing, and local state
+   */
   const { user } = useAuth();
   const router = useRouter();
-
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  /* ---------- Load users ---------- */
+  //endregion Hooks & State
+  //region Load Users
+  /**
+   * Fetches all users from Firestore excluding the current user
+   */
   useEffect(() => {
     async function loadUsers() {
       try {
         setLoading(true);
         setError("");
-
         const snap = await getDocs(collection(db, "users"));
         const list: User[] = [];
-
         snap.forEach((doc) => {
           const data = doc.data() as User;
           if (data.userId && data.userId !== user?.uid) {
             list.push(data);
           }
         });
-
         setUsers(list);
       } catch (err) {
         console.error("Failed to load users:", err);
@@ -53,11 +73,13 @@ export default function StartConversation({
         setLoading(false);
       }
     }
-
     loadUsers();
   }, [user]);
-
-  /* ---------- Memoized filter ---------- */
+  //endregion Load Users
+  //region Search Filter
+  /**
+   * Filters users by display name (case-insensitive)
+   */
   const filtered = useMemo(() => {
     return users.filter((u) =>
       (u.displayName || "")
@@ -65,16 +87,19 @@ export default function StartConversation({
         .includes(search.toLowerCase())
     );
   }, [users, search]);
-
-  /* ---------- Memoized start chat ---------- */
+  //endregion Search Filter
+  //region Start Chat
+  /**
+   * Creates or retrieves a conversation and navigates to it
+   *
+   * @param otherUserId - Selected user ID
+   */
   const startChat = useCallback(
     async (otherUserId: string) => {
       if (!user) return;
-
       try {
         setLoading(true);
         setError("");
-
         const cid = await createConversation(user.uid, otherUserId);
         onClose();
         router.push(`/chat?cid=${cid}`);
@@ -87,19 +112,21 @@ export default function StartConversation({
     },
     [user, router, onClose]
   );
-
+  //endregion Start Chat
+  //region Render
+  /**
+   * Renders modal UI for starting a new conversation
+   */
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       {/* Modal */}
       <div className="w-full max-w-sm rounded-xl bg-white shadow-lg">
-
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-200">
           <h2 className="text-sm font-medium text-gray-900">
             Start a new chat
           </h2>
         </div>
-
         {/* Search */}
         <div className="p-4">
           <input
@@ -112,14 +139,12 @@ export default function StartConversation({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-
         {/* Error */}
         {error && (
           <p className="px-4 pb-2 text-sm text-red-600 text-center">
             {error}
           </p>
         )}
-
         {/* User list */}
         <div className="max-h-64 overflow-y-auto px-2 pb-2">
           {!loading && filtered.length === 0 && (
@@ -129,7 +154,6 @@ export default function StartConversation({
               icon="/images/no-users.svg"
             />
           )}
-
           {filtered.map((u) => (
             <button
               key={`user-${u.userId}`}
@@ -156,7 +180,6 @@ export default function StartConversation({
                   {(u.displayName || "U")[0].toUpperCase()}
                 </div>
               )}
-
               {/* Name */}
               <span className="text-sm text-gray-900 truncate">
                 {u.displayName || "Unnamed user"}
@@ -164,7 +187,6 @@ export default function StartConversation({
             </button>
           ))}
         </div>
-
         {/* Footer */}
         <div className="border-t border-gray-200 p-3">
           <button
@@ -179,4 +201,6 @@ export default function StartConversation({
       </div>
     </div>
   );
+  //endregion Render
 }
+//endregion StartConversation Component

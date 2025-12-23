@@ -1,16 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
 import React from "react";
-
-/* ---------- constants ---------- */
+import  Image  from "next/image";
+//region Constants
+/**
+ * Context menu dimensions
+ */
 const MENU_WIDTH = 176;
 const MENU_HEIGHT = 200;
-
+//endregion Constants
+//region Types
+/**
+ * MessageItemProps
+ *
+ * Props for rendering a single chat message
+ */
 interface MessageItemProps {
   id: string;
   text: string;
@@ -27,13 +35,25 @@ interface MessageItemProps {
     text: string;
     senderId?: string;
   };
-
-  // ✅ ADD (NON-BREAKING)
+  // ADD (NON-BREAKING)
   imageUrl?: string | null;
   isRead?: boolean;
   deliveredAt?: any;
 }
-
+//endregion Types
+//region MessageItem Component
+/**
+ * MessageItem
+ *
+ * Renders a single chat message.
+ * - Supports reply, edit, and delete actions
+ * - Displays delivery/read status
+ * - Supports image messages
+ * - Shows contextual menu on right-click
+ *
+ * @param props - Message item properties
+ * @returns JSX.Element - Message bubble UI
+ */
 function MessageItem({
   id,
   text,
@@ -46,42 +66,55 @@ function MessageItem({
   isRead,
   deliveredAt,
 }: MessageItemProps) {
+  //region Derived State
+  /**
+   * Determines whether message belongs to current user
+   */
   const isMine = senderId === auth.currentUser?.uid;
-
+  //endregion Derived State
+  //region Chat Context
+  /**
+   * Chat actions for reply and edit
+   */
   const {
     currentConversation,
     setReplyTo,
     setEditMessage,
   } = useChat();
-
+  //endregion Chat Context
+  //region Local State & Refs
+  /**
+   * Context menu state and positioning
+   */
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
-
-  /* ---------- Right click ---------- */
+  //endregion Local State & Refs
+  //region Context Menu Handler
+  /**
+   * Opens context menu on right-click
+   */
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-
       const clickX = e.clientX;
       const clickY = e.clientY;
-
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-
       let x = clickX;
       let y = clickY;
-
       if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
       if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
-
       setMenuPos({ x, y });
       setMenuOpen(true);
     },
     []
   );
-
-  /* ---------- Close on outside click ---------- */
+  //endregion Context Menu Handler
+  //region Outside Click Handler
+  /**
+   * Closes context menu when clicking outside
+   */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -91,8 +124,11 @@ function MessageItem({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  /* ---------- Delete ---------- */
+  //endregion Outside Click Handler
+  //region Actions
+  /**
+   * Deletes the message
+   */
   const handleDelete = useCallback(async () => {
     if (!id || !currentConversation) return;
     try {
@@ -101,19 +137,25 @@ function MessageItem({
       setMenuOpen(false);
     }
   }, [id, currentConversation]);
-
-  /* ---------- Reply ---------- */
+  /**
+    * Sets reply state for the message
+    */
   const handleReply = useCallback(() => {
     setReplyTo({ id, text, senderId });
     setMenuOpen(false);
   }, [id, text, senderId, setReplyTo]);
-
-  /* ---------- Edit ---------- */
+  /**
+   * Enables edit mode for the message
+   */
   const handleEdit = useCallback(() => {
     setEditMessage({ id, text });
     setMenuOpen(false);
   }, [id, text, setEditMessage]);
-
+  //endregion Actions
+  //region Render
+  /**
+   * Renders message bubble and context menu
+   */
   return (
     <>
       <div
@@ -126,29 +168,34 @@ function MessageItem({
             {senderName}
           </span>
         )}
-
         <div
           className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
             ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
         >
           {/* 🔹 IMAGE (ADDED) */}
           {imageUrl && (
-            <img
+            <Image
               src={imageUrl}
               alt="Sent image"
               className="mb-2 max-w-[240px] rounded-lg"
+              width={16}
+              height={16}
             />
           )}
-
+          {/* Reply preview */}
+          {replyTo && (
+<div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
+              Replying to:{" "}
+<span className="italic">{replyTo.text}</span>
+</div>
+          )}
           {text}
-
           {editedAt && (
             <span className="ml-1 text-[10px] text-gray-400">
               (edited)
             </span>
           )}
         </div>
-
         {createdAt && (
           <span className="mt-1 text-[10px] text-gray-400">
             {createdAt.toDate().toLocaleTimeString([], {
@@ -160,14 +207,13 @@ function MessageItem({
                 {isRead
                   ? "👁 Seen"
                   : deliveredAt
-                  ? "✓ Delivered"
-                  : "Sending…"}
+                    ? "✓ Delivered"
+                    : "Sending…"}
               </span>
             )}
           </span>
         )}
       </div>
-
       {menuOpen && (
         <div
           ref={menuRef}
@@ -187,9 +233,15 @@ function MessageItem({
       )}
     </>
   );
+  //endregion Render
 }
-
-/* ---------- Menu item ---------- */
+//endregion MessageItem Component
+//region MenuItem Component
+/**
+ * MenuItem
+ *
+ * Reusable context menu item
+ */
 function MenuItem({
   label,
   onClick,
@@ -203,15 +255,14 @@ function MenuItem({
     <button
       onClick={onClick}
       className={`w-full px-4 py-2 text-left transition
-        ${
-          danger
-            ? "text-red-600 hover:bg-red-50"
-            : "text-gray-700 hover:bg-gray-100"
+        ${danger
+          ? "text-red-600 hover:bg-red-50"
+          : "text-gray-700 hover:bg-gray-100"
         }`}
     >
       {label}
     </button>
   );
 }
-
+//endregion MenuItem Component
 export default React.memo(MessageItem);

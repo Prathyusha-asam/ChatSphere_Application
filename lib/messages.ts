@@ -1,4 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+//region Firestore Imports
+/**
+ * Firestore utilities for message operations
+ */
 import {
   collection,
   addDoc,
@@ -14,10 +18,12 @@ import {
   runTransaction,
 } from "firebase/firestore";
 import { db } from "./firebase";
-
-/* =========================================================
-   SEND MESSAGE (FIXED – GUARANTEED COMMIT)
-   ========================================================= */
+//endregion Firestore Imports
+//region Send Message (Transactional)
+/**
+ * Sends a message to a conversation using a Firestore transaction
+ * Ensures message creation and conversation update are atomic
+ */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
@@ -30,12 +36,10 @@ export async function sendMessage(
 ) {
   const msg = text.trim();
   if (!msg) return;
-
   const convoRef = doc(db, "conversations", conversationId);
   const messagesRef = collection(db, "messages");
-
   await runTransaction(db, async (tx: { set: (arg0: any, arg1: { conversationId: string; senderId: string; text: string; replyTo: { messageId: string; text: string; senderId: string; } | null; createdAt: any; }) => void; update: (arg0: any, arg1: { lastMessage: string; lastMessageAt: any; }) => void; }) => {
-    // 1️⃣ Add message
+    // 1️ Add message
     const messageRef = doc(messagesRef);
     tx.set(messageRef, {
       conversationId,
@@ -45,17 +49,19 @@ export async function sendMessage(
       createdAt: serverTimestamp(),
     });
 
-    // 2️⃣ Update conversation atomically
+    // 2️ Update conversation atomically
     tx.update(convoRef, {
       lastMessage: msg,
       lastMessageAt: serverTimestamp(),
     });
   });
 }
-
-/* =========================================================
-   UPDATE MESSAGE
-   ========================================================= */
+//endregion Send Message
+//region Update Message
+/**
+ * Updates message content and marks it as edited
+ * Also updates the conversation's last message text
+ */
 export async function updateMessage(
   conversationId: string,
   messageId: string,
@@ -70,16 +76,18 @@ export async function updateMessage(
     lastMessage: text,
   });
 }
-
-/* =========================================================
-   DELETE MESSAGE (ALREADY FIXED)
-   ========================================================= */
+//endregion Update Message
+//region Delete Message
+/**
+ * Deletes a message and recalculates the conversation's last message
+ */
 export async function deleteMessage(
   conversationId: string,
   messageId: string
 ) {
+  // Remove the message document
   await deleteDoc(doc(db, "messages", messageId));
-
+  // Query the most recent remaining message in the conversation
   const q = query(
     collection(db, "messages"),
     where("conversationId", "==", conversationId),
@@ -87,16 +95,16 @@ export async function deleteMessage(
     orderBy("createdAt", "desc"),
     limit(1)
   );
-
   const snap = await getDocs(q);
   const convoRef = doc(db, "conversations", conversationId);
-
+  // If no messages remain, clear conversation metadata
   if (snap.empty) {
     await updateDoc(convoRef, {
       lastMessage: "",
       lastMessageAt: null,
     });
   } else {
+    // Otherwise, update with the latest remaining message
     const last = snap.docs[0].data();
     await updateDoc(convoRef, {
       lastMessage: last.text,
@@ -104,3 +112,4 @@ export async function deleteMessage(
     });
   }
 }
+//endregion Delete Message

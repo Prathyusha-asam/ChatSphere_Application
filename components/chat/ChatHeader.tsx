@@ -1,7 +1,7 @@
+/* eslint-disable react-hooks/static-components */
 /* eslint-disable @next/next/no-img-element */
 "use client";
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   doc,
   onSnapshot,
@@ -19,8 +19,13 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
-
-/* ---------- Types ---------- */
+//region Types
+/**
+ * UserProfile
+ *
+ * Represents the other participant's public profile
+ * displayed in the chat header
+ */
 interface UserProfile {
   displayName: string;
   photoURL?: string;
@@ -29,27 +34,63 @@ interface UserProfile {
     toDate: () => Date;
   };
 }
-
+//endregion Types
+//region ChatHeader Component
+/**
+ * ChatHeader
+ *
+ * Displays the active conversation header.
+ * - Shows other user's avatar, name, and online status
+ * - Subscribes to conversation and user profile updates
+ * - Provides chat actions (mute, favorite, clear, mark unread)
+ *
+ * @returns JSX.Element - Chat header UI
+ */
 export default function ChatHeader() {
+  //region Hooks & State
+  /**
+   * Authentication, routing, and query params
+   */
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const conversationId = searchParams.get("cid");
-
+  /**
+   * Local component state
+   * - profile: other user's profile
+   * - otherUserId: UID of the other participant
+   * - menuOpen: action menu visibility
+   * - loading: loading indicator
+   * - isMuted: chat muted flag
+   * - isFavorite: chat favorite flag
+   */
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  /* 🔹 ADDED STATE */
   const [isMuted, setIsMuted] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  //endregion Hooks & State
+  //region Firestore References
+  /**
+   * Reference to current conversation document
+   */
   const convoRef = conversationId
     ? doc(db, "conversations", conversationId)
     : null;
-
-  /* ---------- Menu Item ---------- */
+  //endregion Firestore References
+  //region MenuItem Component
+  /**
+   * MenuItem
+   *
+   * Reusable menu action item
+   *
+   * @param label - Menu label text
+   * @param onClick - Click handler
+   * @param danger - Marks destructive actions
+   */
   function MenuItem({
     label,
     onClick,
@@ -69,31 +110,30 @@ export default function ChatHeader() {
       </button>
     );
   }
-
-  /* ---------- Load conversation + user ---------- */
+  //endregion MenuItem Component
+  //region Load Conversation & User
+  /**
+   * Subscribes to conversation and other user's profile.
+   * - Resolves other participant
+   * - Reads mute and favorite flags
+   * - Listens for real-time profile updates
+   */
   useEffect(() => {
     if (!conversationId || !user) return;
-
     let unsubscribeUser: (() => void) | null = null;
-
     const unsubscribeConversation = onSnapshot(
       doc(db, "conversations", conversationId),
       (snap) => {
         if (!snap.exists()) return;
-
         const data = snap.data();
         const participants: string[] = data.participants || [];
         const uid = participants.find((p) => p !== user.uid);
         if (!uid) return;
-
         setOtherUserId(uid);
-
-        /* 🔹 read mute / favorite flags */
+        /* read mute / favorite flags */
         setIsMuted((data.mutedFor || []).includes(user.uid));
         setIsFavorite((data.favoritesFor || []).includes(user.uid));
-
         if (unsubscribeUser) unsubscribeUser();
-
         unsubscribeUser = onSnapshot(doc(db, "users", uid), (userSnap) => {
           if (userSnap.exists()) {
             setProfile(userSnap.data() as UserProfile);
@@ -102,13 +142,34 @@ export default function ChatHeader() {
         });
       }
     );
-
     return () => {
       unsubscribeConversation();
       if (unsubscribeUser) unsubscribeUser();
     };
   }, [conversationId, user]);
-
+  //endregion Load Conversation & User
+  //region Loading Guard
+  /**
+   * Loading state while resolving conversation and profile
+   */
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        menuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        menuButtonRef.current &&
+        !menuButtonRef.current.contains(target)
+      ) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [menuOpen]);
   if (loading || !profile) {
     return (
       <div className="px-6 py-4 text-sm text-gray-500">
@@ -116,69 +177,94 @@ export default function ChatHeader() {
       </div>
     );
   }
-
-  /* ---------- ACTIONS ---------- */
-
-  // ✅ MARK AS UNREAD
+  //endregion Loading Guard
+  //region Actions
+  /**
+   * Marks conversation as unread for current user
+   */
   const handleMarkAsUnread = async () => {
     if (!convoRef || !user) return;
-
     await updateDoc(convoRef, {
       [`lastReadAt.${user.uid}`]: null,
     });
-
     setMenuOpen(false);
   };
-
-  // 🔕 MUTE / UNMUTE
+  /**
+    * Toggles mute / unmute for the conversation
+    */
   const handleMuteToggle = async () => {
     if (!convoRef || !user) return;
-
     await updateDoc(convoRef, {
       mutedFor: isMuted
         ? arrayRemove(user.uid)
         : arrayUnion(user.uid),
     });
-
     setMenuOpen(false);
   };
-
-  // ⭐ FAVORITE / UNFAVORITE
+  /**
+     * Toggles favorite / unfavorite for the conversation
+     */
   const handleFavoriteToggle = async () => {
     if (!convoRef || !user) return;
-
     await updateDoc(convoRef, {
       favoritesFor: isFavorite
         ? arrayRemove(user.uid)
         : arrayUnion(user.uid),
     });
-
     setMenuOpen(false);
   };
-
-  // 🧹 CLEAR ALL CHATS (THIS CONVERSATION)
+  /**
+    * Clears all messages in the current conversation
+    */
   const handleClearChat = async () => {
     if (!conversationId) return;
-
     const q = query(
       collection(db, "messages"),
       where("conversationId", "==", conversationId)
     );
-
     const snap = await getDocs(q);
     await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
-
     await updateDoc(convoRef!, {
       lastMessage: "",
       lastMessageAt: null,
     });
-
     setMenuOpen(false);
   };
-
+  //endregion Actions
+  //region Helpers
+  /**
+   * Formats user's last seen timestamp
+   *
+   * @param lastSeen - Firestore timestamp wrapper
+   * @returns string - Formatted date or time
+   */
+  function formatLastSeen(lastSeen?: { toDate: () => Date }) {
+    if (!lastSeen?.toDate) return "—";
+    const lastSeenDate = lastSeen.toDate();
+    const now = new Date();
+    const diffMs = now.getTime() - lastSeenDate.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    // Less than 24 hours → show time
+    if (diffHours < 24) {
+      return lastSeenDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    // More than 24 hours → show date
+    return lastSeenDate.toLocaleDateString([], {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+  //endregion Helpers
+  //region Render
+  /**
+   * Renders chat header UI
+   */
   return (
     <div className="relative flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-
       {/* LEFT → Profile */}
       <div
         onClick={() => router.push(`/profile/${otherUserId}`)}
@@ -195,13 +281,11 @@ export default function ChatHeader() {
             {profile.displayName?.[0]?.toUpperCase()}
           </div>
         )}
-
         {/* User info */}
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-medium text-gray-900">
             {profile.displayName}
           </span>
-
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             {profile.isOnline ? (
               <>
@@ -212,24 +296,16 @@ export default function ChatHeader() {
               <>
                 <span className="w-2 h-2 rounded-full bg-gray-400" />
                 <span>
-                  Last seen{" "}
-                  {profile.lastSeen?.toDate
-                    ? profile.lastSeen
-                        .toDate()
-                        .toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                    : "—"}
+                  Last seen {formatLastSeen(profile.lastSeen)}
                 </span>
               </>
             )}
           </div>
         </div>
       </div>
-
       {/* RIGHT → Menu */}
       <button
+        ref={menuButtonRef}
         onClick={(e) => {
           e.stopPropagation();
           setMenuOpen((p) => !p);
@@ -238,9 +314,9 @@ export default function ChatHeader() {
       >
         <MoreVertical size={18} />
       </button>
-
       {menuOpen && (
         <div
+          ref={menuRef}
           onClick={(e) => e.stopPropagation()}
           className="absolute right-6 top-full mt-2 w-56 rounded-xl border bg-white shadow-lg z-50"
         >
@@ -257,9 +333,7 @@ export default function ChatHeader() {
             }
             onClick={handleFavoriteToggle}
           />
-
           <div className="border-t my-1" />
-
           <MenuItem
             label="Clear all chats"
             danger
@@ -269,4 +343,6 @@ export default function ChatHeader() {
       )}
     </div>
   );
+  //endregion Render
 }
+//endregion ChatHeader Component

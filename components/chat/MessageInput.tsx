@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { setTypingStatus } from "@/lib/typing";
@@ -8,10 +7,29 @@ import { useChat } from "@/hooks/useChat";
 import EmojiPicker from "emoji-picker-react";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import Image from "next/image";
-
+//region Constants
+/**
+ * Maximum allowed characters per message
+ */
 const MAX_CHARS = 500;
-
+//endregion Constants
+//region MessageInput Component
+/**
+ * MessageInput
+ *
+ * Composer for sending, editing, and replying to messages.
+ * - Supports emoji picker and image selection
+ * - Handles typing indicators with debounce
+ * - Supports Ctrl/Alt + Enter for new line
+ * - Handles edit & reply modes
+ *
+ * @returns JSX.Element | null - Message input UI
+ */
 export default function MessageInput() {
+  //region Chat Context
+  /**
+   * Chat state and actions
+   */
   const {
     currentConversation,
     sendMessage,
@@ -20,84 +38,80 @@ export default function MessageInput() {
     editMessage,
     clearComposerState,
   } = useChat();
-
+  //endregion Chat Context
+  //region Local State
+  /**
+   * Local composer state
+   */
   const [text, setText] = useState(editMessage?.text ?? "");
   const [showEmoji, setShowEmoji] = useState(false);
   const [error, setError] = useState("");
-
+  //endregion Local State
+  //region Refs
+  /**
+   * Refs for debouncing, emoji picker, and file input
+   */
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  /* ---------- Emoji picker ref (ADDED) ---------- */
   const emojiRef = useRef<HTMLDivElement | null>(null);
-
-  /* ---------- FILE INPUT REF (ADDED) ---------- */
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  /* =========================================================
-     Typing indicator (debounced & stable)
-     ========================================================= */
+  //endregion Refs
+  //region Typing Indicator
+  /**
+   * Updates typing status with debounce
+   */
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
-
     if (!text.trim()) {
       setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
       return;
     }
-
     setTypingStatus(currentConversation.id, auth.currentUser.uid, true);
-
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-
     typingTimeoutRef.current = setTimeout(() => {
       setTypingStatus(currentConversation.id, auth.currentUser!.uid, false);
     }, 2000);
-
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     };
   }, [text, currentConversation]);
-
-  /* =========================================================
-     Close emoji picker on outside click (ADDED)
-     ========================================================= */
+  //endregion Typing Indicator
+  //region Emoji Picker Outside Click
+  /**
+   * Closes emoji picker when clicking outside
+   */
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
         setShowEmoji(false);
       }
     }
-
     if (showEmoji) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showEmoji]);
-
-  /* =========================================================
-     Send message
-     ========================================================= */
+  //endregion Emoji Picker Outside Click
+  //region Send Message
+  /**
+   * Validates and sends a text message
+   */
   const handleSend = async () => {
     if (!currentConversation || !auth.currentUser) return;
-
     const trimmedText = text.trim();
-
     if (!trimmedText) {
       setError("Message cannot be empty");
       return;
     }
-
     if (trimmedText.length > MAX_CHARS) {
       setError(`Message cannot exceed ${MAX_CHARS} characters`);
       return;
     }
-
     try {
       setError("");
       await sendMessage(trimmedText);
@@ -109,27 +123,27 @@ export default function MessageInput() {
       setError("Failed to send message. Please try again.");
     }
   };
-
-  /* =========================================================
-     OPEN FILE PICKER (ADDED)
-     ========================================================= */
+  //endregion Send Message
+  //region File Picker
+  /**
+   * Opens native file picker
+   */
   const handleOpenFilePicker = () => {
     fileInputRef.current?.click();
   };
-
-  /* =========================================================
-     HANDLE IMAGE SELECT (ADDED)
-     ========================================================= */
+  /**
+     * Handles image selection
+     *
+     * @param e - File input change event
+     */
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
     if (!file || !currentConversation || !auth.currentUser) return;
-
     try {
       // TEMP: sending filename (storage upload comes next step)
       await sendMessage(`[image] ${file.name}`);
-
       setTypingStatus(
         currentConversation.id,
         auth.currentUser.uid,
@@ -141,10 +155,11 @@ export default function MessageInput() {
       e.target.value = "";
     }
   };
-
-  /* =========================================================
-     Cleanup on unmount
-     ========================================================= */
+  //endregion File Picker
+  //region Cleanup
+  /**
+   * Clears typing status on unmount
+   */
   useEffect(() => {
     return () => {
       if (auth.currentUser && currentConversation) {
@@ -152,9 +167,17 @@ export default function MessageInput() {
       }
     };
   }, [currentConversation]);
-
+  //endregion Cleanup
+  //region Guard
+  /**
+   * Hide input when no conversation is active
+   */
   if (!currentConversation) return null;
-
+  //endregion Guard
+  //region Render
+  /**
+   * Renders message composer UI
+   */
   return (
     <div className="relative" key={editMessage?.id ?? "new-message"}>
       {(replyTo || editMessage) && (
@@ -169,7 +192,6 @@ export default function MessageInput() {
               </>
             )}
           </div>
-
           <button
             onClick={clearComposerState}
             className="text-gray-500 hover:text-gray-700"
@@ -178,7 +200,6 @@ export default function MessageInput() {
           </button>
         </div>
       )}
-
       <div className="flex items-center gap-2">
         {/* EMOJI BUTTON (UNCHANGED) */}
         <button
@@ -189,16 +210,15 @@ export default function MessageInput() {
         >
           <Image src="/images/smiley.svg" alt="Emoji" width={22} height={22} />
         </button>
-
+        {/* Image Picker */}
         <button
           type="button"
           onClick={handleOpenFilePicker}
           className="flex h-10 w-10 items-center justify-center rounded-full
                      text-gray-600 hover:bg-gray-100 transition"
         >
-        <Image src="/images/image.png" alt="Emoji" width={22} height={22} />
+          <Image src="/images/image.png" alt="Emoji" width={22} height={22} />
         </button>
-
         <input
           ref={fileInputRef}
           type="file"
@@ -206,7 +226,6 @@ export default function MessageInput() {
           hidden
           onChange={handleFileChange}
         />
-
         {showEmoji && (
           <div ref={emojiRef} className="absolute bottom-full left-0 mb-2 z-50">
             <EmojiPicker
@@ -214,23 +233,28 @@ export default function MessageInput() {
             />
           </div>
         )}
-
-        <input
-          type="text"
+        {/* Textarea */}
+        <textarea
           placeholder={editMessage ? "Edit message…" : "Message"}
           value={text}
+          rows={1}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && e.ctrlKey) {
+            if (e.key === "Enter") {
+              if (e.ctrlKey || e.altKey) {
+                e.preventDefault();
+                setText((prev) => prev + "\n");
+                return;
+              }
               e.preventDefault();
               handleSend();
             }
           }}
-          className="flex-1 rounded-full border border-gray-300 bg-white
-                     px-4 py-2 text-sm text-gray-900
-                     focus:outline-none focus:ring-2 focus:ring-gray-900/20"
+          className="flex-1 resize-none rounded-2xl border border-gray-300 bg-white
+             px-4 py-2 text-sm text-gray-900
+             focus:outline-none focus:ring-2 focus:ring-gray-900/20"
         />
-
+        {/* Send Button */}
         <button
           onClick={handleSend}
           disabled={loading}
@@ -241,7 +265,7 @@ export default function MessageInput() {
           {loading ? <LoadingSpinner size={16} /> : "Send"}
         </button>
       </div>
-
+      {/* Footer */}
       <div className="mt-1 flex items-center justify-between px-2 text-xs">
         <span className="text-red-500">{error}</span>
         <span
@@ -252,4 +276,6 @@ export default function MessageInput() {
       </div>
     </div>
   );
+  //endregion Render
 }
+//endregion MessageInput Component

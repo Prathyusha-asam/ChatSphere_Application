@@ -7,7 +7,10 @@ import { createUserProfile } from "./firestore";
 * Validates email format
 */
 function validateEmail(email: string): void {
-  if (!email || !email.includes("@")) {
+ const emailRegex =
+    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  if (!email || !emailRegex.test(email)) {
     throw new Error("Invalid email address");
   }
 }
@@ -20,7 +23,6 @@ function validatePassword(password: string): void {
   }
 }
 //endregion Input Validation Helpers
- 
 //region Sign Up
 /**
 * Registers a new user with email & password
@@ -56,9 +58,7 @@ export async function signUp(
     throw new Error("Sign up failed");
   }
 }
-
 //endregion Sign Up
- 
 //region Login
 /**
 * Logs in an existing user
@@ -84,7 +84,6 @@ export async function login(
   }
 }
 //endregion Login
- 
 //region Logout
 /**
 * Logs out the currently authenticated user
@@ -100,7 +99,6 @@ export async function logout(): Promise<void> {
   }
 }
 //endregion Logout
- 
 //region Get Current User
 /**
 * Returns the currently authenticated user

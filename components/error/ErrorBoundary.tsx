@@ -1,23 +1,56 @@
 "use client";
-
 import React from "react";
-
-type State = { hasError: boolean };
-
+//region Types
+/**
+ * ErrorBoundary state
+ */
+type State = {
+  hasError: boolean;
+};
+//endregion Types
+//region ErrorBoundary Component
+/**
+ * ErrorBoundary
+ *
+ * Catches unhandled runtime errors in the React component tree
+ * and displays a fallback UI instead of crashing the app.
+ *
+ * - Uses React error boundary lifecycle methods
+ * - Logs errors for debugging
+ * - Allows user to retry by refreshing the page
+ *
+ * @extends React.Component
+ */
 export class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   State
 > {
+  //region State
+  /**
+   * Tracks whether an error has occurred
+   */
   state: State = { hasError: false };
-
+  //endregion State
+  //region Error Lifecycle
+  /**
+   * Updates state when an error is thrown
+   */
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-
+  /**
+    * Logs error details for debugging
+    *
+    * @param error - Caught runtime error
+    */
   componentDidCatch(error: Error) {
     console.error("Unhandled UI Error:", error);
   }
-
+  //endregion Error Lifecycle
+  //region Render
+  /**
+   * Renders fallback UI on error or children otherwise
+   */
   render() {
     if (this.state.hasError) {
       return (
@@ -37,4 +70,6 @@ export class ErrorBoundary extends React.Component<
     }
     return this.props.children;
   }
+  //endregion Render
 }
+//endregion ErrorBoundary Component
