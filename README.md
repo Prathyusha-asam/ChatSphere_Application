@@ -48,11 +48,6 @@ The application follows **clean architecture principles**, **transaction-safe Fi
 - Presence updated on:
   - Login
   - Logout
-  - Browser close
-  - Page refresh
-- Real-time presence list
-- Online users sorted first
-- Current user excluded from presence list
 
 ###  User Profiles
 - Display name support
@@ -69,6 +64,8 @@ The application follows **clean architecture principles**, **transaction-safe Fi
 - Search conversations by user name
 - Start new chats via modal
 - Delete conversations (with cascade message deletion)
+- Mute chat
+- Add to favorites 
 - Right-click context menus
 
 ###  UI & UX
@@ -77,46 +74,78 @@ The application follows **clean architecture principles**, **transaction-safe Fi
 - Skeleton loaders
 - Empty states
 - Error boundaries
-- Smooth transitions & animations
 - Accessible components
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|------|-----------|
-| Framework | Next.js (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS |
-| Authentication | Firebase Authentication |
-| Database | Firebase Firestore |
-| State Management | React Context API |
-| Real-time | Firestore `onSnapshot` |
-| UI Utilities | Emoji Picker, DevExtreme |
-| Error Handling | React Error Boundaries |
+| Layer             | Technology                |
+|-------------------|---------------------------|
+| Framework         | Next.js (App Router)      |
+| Language          | TypeScript                |
+| Styling           | Tailwind CSS              |
+| Authentication    | Firebase Authentication   |
+| Database          | Firebase Firestore        |
+| State Management  | React Context API         |
+| Real-time         | Firestore `onSnapshot`    |
+| UI Utilities      | Emoji Picker, DevExtreme  |
+| Error Handling    | React Error Boundaries    |
 
 ---
 
 ## Project Structure
 
 ```
-src/
+NEXT-JS-ASSIGNMENT/
 ├─ app/
 │  ├─ auth/
+│  │   ├─ forgot-password/
+│  │   ├─ login/
+│  │   └─ register/
 │  ├─ chat/
 │  ├─ profile/
+│  ├─ start-chat/
+│  ├─ global.css
 │  ├─ layout.tsx
 │  └─ page.tsx
 │
 ├─ components/
 │  ├─ auth/
+│  │   ├─ LoginForm.tsx
+│  │   └─ RegistrationForm.tsx
+│  │
 │  ├─ chat/
+│  │   ├─ ChatHeader.tsx
+│  │   ├─ ConversationList.tsx
+│  │   ├─ HeaderTypingIndicator.tsx
+│  │   ├─ MessageInput.tsx
+│  │   ├─ MessageItem.tsx
+│  │   ├─ MessageList.tsx
+│  │   ├─ StartConversation.tsx
+│  │   ├─ TypingIndicator.tsx
+│  │   └─ UserPresence.tsx
+│  │
 │  ├─ common/
+│  │   └─ ConfirmLogoutModal.tsx
+│  │
+│  ├─ error/
+│  │   └─ ErrorBoundary.tsx
+│  │
 │  ├─ layout/
-│  ├─ ui/
+│  │   ├─ AuthGuard.tsx
+│  │   ├─ Navbar.tsx
+│  │   └─ PromptCard.tsx
+│  │
 │  ├─ skeletons/
-│  └─ error/
+│  │   ├─ ConversationsSkeleton.tsx
+│  │   ├─ MessageSkeleton.tsx
+│  │   └─ ProfileSkeleton.tsx
+│  │
+│  └─ ui/
+│      ├─ EmptyState.tsx
+│      ├─ LoadingSpinner.tsx
+│      └─ Skeleton.tsx
 │
 ├─ context/
 │  ├─ AuthContext.tsx
@@ -141,10 +170,12 @@ src/
 │  └─ getAuthErrorMessage.ts
 │
 ├─ types/
+|  ├─ conversation.types.ts
 │  └─ firestore.types.ts
 │
-└─ styles/
-   └─ globals.css
+└─ public/
+   └─ images/
+
 ```
 
 ---
@@ -187,12 +218,13 @@ src/
 
 ### Environment Variables
 ```
-NEXT_PUBLIC_FIREBASE_API_KEY=xxxx
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxxx
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxxx
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=xxxx
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxxx
-NEXT_PUBLIC_FIREBASE_APP_ID=xxxx
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyA6OqhCBNSkH_VpGXgMRoMasWKb8OtMJw8 
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=chat-sphere-prod.firebaseapp.com 
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=chat-sphere-prod 
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=chat-sphere-prod.firebasestorage.app 
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1067813785474 
+NEXT_PUBLIC_FIREBASE_APP_ID=1:1067813785474:web:e26a17650a5f35f594899b 
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-D391G4QRE0
 ```
 
 ---
@@ -280,6 +312,8 @@ NEXT_PUBLIC_FIREBASE_APP_ID=xxxx
 git clone <repository-url>
 cd chat-sphere
 npm install
+npm install devextreme
+npm install lucide-react
 ```
 
 ### Run Locally
@@ -294,7 +328,6 @@ Open http://localhost:3000
 ##  Error Handling
 - Global ErrorBoundary
 - Defensive Firestore listeners
-- Friendly user-facing messages
 - Retry mechanisms
 
 ---
@@ -314,5 +347,3 @@ Open http://localhost:3000
 - Push notifications
 - Emoji reactions UI
 - AI chatbot integration
-- Admin dashboard
-- Role-based access control

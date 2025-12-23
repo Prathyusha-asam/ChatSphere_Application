@@ -25,18 +25,23 @@ export default function Navbar() {
   const popoverRef = useRef<HTMLDivElement>(null);
  
   /* ---------- Fetch Profile (real-time) ---------- */
-  useEffect(() => {
-    if (!user) return;
+useEffect(() => {
+  if (!user || !user.uid) return;
  
-    const userRef = doc(db, "users", user.uid);
-    const unsubscribe = onSnapshot(userRef, (snap) => {
+  const userRef = doc(db, "users", user.uid);
+ 
+  const unsubscribe = onSnapshot(
+    userRef,
+    (snap) => {
       if (snap.exists()) {
         setProfile(snap.data() as UserProfile);
       }
-    });
+    }
+  );
  
-    return () => unsubscribe();
-  }, [user]);
+  return () => unsubscribe();
+}, [user?.uid]);
+ 
  
   /* ---------- Close on outside click ---------- */
   useEffect(() => {

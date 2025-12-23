@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -29,27 +30,26 @@ export default function MessageInput() {
   /* ---------- Emoji picker ref (ADDED) ---------- */
   const emojiRef = useRef<HTMLDivElement | null>(null);
 
+  /* ---------- FILE INPUT REF (ADDED) ---------- */
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   /* =========================================================
      Typing indicator (debounced & stable)
      ========================================================= */
   useEffect(() => {
     if (!auth.currentUser || !currentConversation) return;
 
-    // Stop typing immediately if input is empty
     if (!text.trim()) {
       setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
       return;
     }
 
-    // User is typing
     setTypingStatus(currentConversation.id, auth.currentUser.uid, true);
 
-    // Clear previous debounce timer
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Stop typing after 2s of inactivity
     typingTimeoutRef.current = setTimeout(() => {
       setTypingStatus(currentConversation.id, auth.currentUser!.uid, false);
     }, 2000);
@@ -102,9 +102,8 @@ export default function MessageInput() {
       setError("");
       await sendMessage(trimmedText);
       setText("");
-      setShowEmoji(false); // 👈 CLOSE EMOJI PICKER AFTER SEND (ADDED)
-      clearComposerState(); //
-      // Stop typing immediately after send
+      setShowEmoji(false);
+      clearComposerState();
       setTypingStatus(currentConversation.id, auth.currentUser.uid, false);
     } catch {
       setError("Failed to send message. Please try again.");
@@ -112,7 +111,39 @@ export default function MessageInput() {
   };
 
   /* =========================================================
-     Cleanup on unmount (IMPORTANT)
+     OPEN FILE PICKER (ADDED)
+     ========================================================= */
+  const handleOpenFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  /* =========================================================
+     HANDLE IMAGE SELECT (ADDED)
+     ========================================================= */
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentConversation || !auth.currentUser) return;
+
+    try {
+      // TEMP: sending filename (storage upload comes next step)
+      await sendMessage(`[image] ${file.name}`);
+
+      setTypingStatus(
+        currentConversation.id,
+        auth.currentUser.uid,
+        false
+      );
+    } catch {
+      setError("Failed to send image");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  /* =========================================================
+     Cleanup on unmount
      ========================================================= */
   useEffect(() => {
     return () => {
@@ -127,10 +158,7 @@ export default function MessageInput() {
   return (
     <div className="relative" key={editMessage?.id ?? "new-message"}>
       {(replyTo || editMessage) && (
-        <div
-          className="mb-2 flex items-center justify-between
-                     rounded-lg bg-gray-100 px-3 py-2 text-xs"
-        >
+        <div className="mb-2 flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2 text-xs">
           <div className="truncate">
             {editMessage ? (
               <span className="font-medium text-gray-700">Editing message</span>
@@ -152,6 +180,7 @@ export default function MessageInput() {
       )}
 
       <div className="flex items-center gap-2">
+        {/* EMOJI BUTTON (UNCHANGED) */}
         <button
           type="button"
           onClick={() => setShowEmoji((p) => !p)}
@@ -160,6 +189,23 @@ export default function MessageInput() {
         >
           <Image src="/images/smiley.svg" alt="Emoji" width={22} height={22} />
         </button>
+
+        <button
+          type="button"
+          onClick={handleOpenFilePicker}
+          className="flex h-10 w-10 items-center justify-center rounded-full
+                     text-gray-600 hover:bg-gray-100 transition"
+        >
+        <Image src="/images/image.png" alt="Emoji" width={22} height={22} />
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={handleFileChange}
+        />
 
         {showEmoji && (
           <div ref={emojiRef} className="absolute bottom-full left-0 mb-2 z-50">
@@ -196,7 +242,6 @@ export default function MessageInput() {
         </button>
       </div>
 
-      {/* Error + character count */}
       <div className="mt-1 flex items-center justify-between px-2 text-xs">
         <span className="text-red-500">{error}</span>
         <span
