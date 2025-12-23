@@ -14,7 +14,7 @@ import { getAuthErrorMessage } from "@/lib/getAuthErrorMessage";
  * Handles loading, success, and error states.
  */
 export default function ForgotPasswordPage() {
-    //region Router
+  //region Router
   /**
    * Next.js router for client-side navigation
    */
@@ -22,19 +22,19 @@ export default function ForgotPasswordPage() {
   /**
    * Local component state
    */
-    //endregion Router
-//region State
+  //endregion Router
+  //region State
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   //endregion State
-    //region Effects
-/**
-   * Side effect:
-   * Disable body scroll while this auth page is mounted
-   * Restore scroll when component unmounts
-   */
+  //region Effects
+  /**
+     * Side effect:
+     * Disable body scroll while this auth page is mounted
+     * Restore scroll when component unmounts
+     */
   useEffect(() => {
     // Disable scroll on auth page
     document.body.style.overflow = "hidden";
@@ -43,26 +43,25 @@ export default function ForgotPasswordPage() {
     };
   }, []);
   //endregion Effects
-    //region Handlers
- /**
-   * Handles form submission for password reset
-   *
-   * @param e - React form submit event
-   */
+  //region Handlers
+  /**
+    * Handles form submission for password reset
+    *
+    * @param e - React form submit event
+    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-      // Reset previous messages before new request
+    // Reset previous messages before new request
     setError("");
     setSuccess("");
-
     try {
       setLoading(true);
-       // Trigger password reset email
+      // Trigger password reset email
       await forgotPassword(email);
-       // Show success message if request succeeds
+      // Show success message if request succeeds
       setSuccess("Password reset email sent. Check your inbox.");
     } catch (err: unknown) {
-       // Convert Firebase/Auth errors to user-friendly messages
+      // Convert Firebase/Auth errors to user-friendly messages
       setError(getAuthErrorMessage(err));
     } finally {
       // Ensure loading state is always cleared
@@ -70,19 +69,19 @@ export default function ForgotPasswordPage() {
     }
   };
   //endregion Handlers
-   //region Render
+  //region Render
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-white overflow-hidden">
- {/* Password reset form */}
+      {/* Password reset form */}
       <form
         onSubmit={handleSubmit}
         className="w-[380px] rounded-xl border border-gray-200 bg-white px-6 py-8 shadow-sm"
       >
-         {/* Page title */}
+        {/* Page title */}
         <h2 className="text-2xl font-semibold text-gray-900 mb-4 text-center">
           Reset your password
         </h2>
-         {/* Instruction text */}
+        {/* Instruction text */}
         <p className="text-sm text-gray-600 mb-6 text-center">
           Enter your email address and we’ll send you a reset link.
         </p>
@@ -92,13 +91,12 @@ export default function ForgotPasswordPage() {
             {error}
           </p>
         )}
-         {/* Success message */}
+        {/* Success message */}
         {success && (
           <p className="mb-4 text-sm text-green-600 text-center">
             {success}
           </p>
         )}
-
         {/* Email */}
         <input
           type="email"

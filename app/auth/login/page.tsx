@@ -1,20 +1,17 @@
 "use client";
-
 import { useEffect } from "react";
 import LoginForm from "@/components/auth/LoginForm";
 //region LoginPage Component
 /**
  * LoginPage
- *
  * Renders the authentication login page.
  * - Disables body scrolling while the page is mounted
  * - Restores scrolling when the page is unmounted
  * - Centers the LoginForm vertically and horizontally
- *
  * @returns JSX.Element - Login page layout with LoginForm component
  */
 export default function LoginPage() {
-   //region Side Effects
+  //region Side Effects
   /**
    * useEffect
    *
@@ -31,8 +28,7 @@ export default function LoginPage() {
       document.body.style.overflow = "auto";
     };
   }, []);
- //endregion Side Effects
-
+  //endregion Side Effects
   //region Render
   /**
    * Renders the login container and form

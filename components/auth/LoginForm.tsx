@@ -1,34 +1,63 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CheckBox from "devextreme-react/check-box";
-
 import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
 } from "firebase/auth";
-
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { getAuthErrorMessage } from "@/lib/getAuthErrorMessage";
-
+//region LoginForm Component
+/**
+ * LoginForm
+ *
+ * Handles user authentication via email and password.
+ * - Supports "Remember me" persistence
+ * - Displays authentication errors
+ * - Redirects user to chat on successful login
+ *
+ * @returns JSX.Element - Login form UI
+ */
 export default function LoginForm() {
+  //region Hooks & State
+  /**
+   * Router and authentication context
+   */
   const router = useRouter();
   const { login } = useAuth();
-
+  /**
+    * Local form state
+    * - email: user email input
+    * - password: user password input
+    * - rememberMe: persistence preference
+    * - showPassword: toggle password visibility
+    * - error: authentication error message
+    * - loading: submit loading state
+    */
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+  //endregion Hooks & State
+  //region Submit Handler
+  /**
+   * handleSubmit
+   *
+   * Handles login form submission.
+   * - Sets Firebase auth persistence based on "Remember me"
+   * - Authenticates user via AuthContext
+   * - Redirects to chat page on success
+   *
+   * @param e - React form submit event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
     try {
       setLoading(true);
       await setPersistence(
@@ -43,7 +72,11 @@ export default function LoginForm() {
       setLoading(false);
     }
   };
-
+  //endregion Submit Handler
+  //region Render
+  /**
+   * Renders login form UI
+   */
   return (
     <form
       onSubmit={handleSubmit}
@@ -52,13 +85,11 @@ export default function LoginForm() {
       <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
         Sign in
       </h2>
-
       {error && (
         <p className="mb-4 text-sm text-red-600 text-center">
           {error}
         </p>
       )}
-
       {/* Email */}
       <div className="relative mb-5">
         <input
@@ -76,7 +107,6 @@ export default function LoginForm() {
           Email address
         </label>
       </div>
-
       {/* Password */}
       <div className="relative mb-4">
         <input
@@ -94,14 +124,12 @@ export default function LoginForm() {
           Password
         </label>
       </div>
-
       <div className="flex items-center justify-between mb-6">
         <CheckBox
           value={rememberMe}
           text="Remember me"
           onValueChanged={(e) => setRememberMe(e.value)}
         />
-
         <button
           type="button"
           onClick={() => router.push("/auth/forgot-password")}
@@ -110,7 +138,6 @@ export default function LoginForm() {
           Forgot password?
         </button>
       </div>
-
       <button
         type="submit"
         disabled={loading}
@@ -119,7 +146,6 @@ export default function LoginForm() {
       >
         {loading ? "Signing in..." : "Sign in"}
       </button>
-
       <p className="mt-6 text-center text-sm text-gray-600">
         Don&apos;t have an account?{" "}
         <button
@@ -130,19 +156,8 @@ export default function LoginForm() {
           Sign up
         </button>
       </p>
-      {error && (
-        <div className="mb-4 text-center">
-          <p className="text-sm text-red-600">{error}</p>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="mt-1 text-sm underline"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
     </form>
   );
+  //endregion Render
 }
+//endregion LoginForm Component

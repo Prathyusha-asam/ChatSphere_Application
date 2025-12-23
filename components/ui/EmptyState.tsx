@@ -1,15 +1,47 @@
 "use client";
-
 import Image from "next/image";
-
+//region Props
+/**
+ * EmptyStateProps
+ *
+ * Props for rendering an empty or no-data state.
+ */
 interface EmptyStateProps {
+  /**
+   * Primary title text
+   */
   title: string;
+  /**
+    * Optional description text
+    */
   description?: string;
+  /**
+   * Optional icon image path
+   * @default "/images/empty-box.svg"
+   */
   icon?: string;
+  /**
+   * Optional action button label
+   */
   actionLabel?: string;
+  /**
+   * Optional action callback
+   */
   onAction?: () => void;
 }
-
+//endregion Props
+//region EmptyState Component
+/**
+ * EmptyState
+ *
+ * Generic reusable empty-state component.
+ * - Displays icon, title, and optional description
+ * - Optionally renders a call-to-action button
+ * - Used across lists, chats, and error states
+ *
+ * @param props - Empty state configuration
+ * @returns JSX.Element - Empty state UI
+ */
 export default function EmptyState({
   title,
   description,
@@ -17,6 +49,10 @@ export default function EmptyState({
   actionLabel,
   onAction,
 }: EmptyStateProps) {
+  //region Render
+  /**
+   * Renders empty state UI
+   */
   return (
     <div className="flex flex-col items-center justify-center text-center px-6 py-10 text-gray-500">
       <Image
@@ -26,17 +62,14 @@ export default function EmptyState({
         height={96}
         className="mb-4 opacity-80"
       />
-
       <h3 className="text-sm font-medium text-gray-900 mb-1">
         {title}
       </h3>
-
       {description && (
         <p className="text-sm text-gray-500 max-w-xs mb-4">
           {description}
         </p>
       )}
-
       {actionLabel && onAction && (
         <button
           onClick={onAction}
@@ -48,4 +81,6 @@ export default function EmptyState({
       )}
     </div>
   );
+  //endregion Render
 }
+//endregion EmptyState Component

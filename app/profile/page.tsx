@@ -1,14 +1,17 @@
 "use client";
-
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile, updateUserProfile } from "@/lib/firestore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-
-/* ---------- Types ---------- */
+//region Types
+/**
+ * UserProfile
+ *
+ * Represents the authenticated user's profile data
+ * stored in Firestore
+ */
 interface UserProfile {
   email: string;
   displayName: string;
@@ -17,8 +20,13 @@ interface UserProfile {
     toDate: () => Date;
   };
 }
-
-/* ---------- Preset Avatars ---------- */
+//endregion Types
+//region Constants
+/**
+ * PRESET_AVATARS
+ *
+ * Static list of selectable profile avatar images
+ */
 const PRESET_AVATARS = [
   "/images/avatar1.jpg",
   "/images/avatar2.jpg",
@@ -26,17 +34,49 @@ const PRESET_AVATARS = [
   "/images/avatar4.jpg",
   "/images/avatar5.jpg",
 ];
-
+//endregion Constants
+//region ProfilePage Component
+/**
+ * ProfilePage
+ *
+ * Displays and allows editing of the authenticated user's profile.
+ * - Fetches user profile from Firestore
+ * - Updates display name and avatar
+ * - Handles loading, success, and error states
+ * - Protected by AuthGuard
+ *
+ * @returns JSX.Element - User profile management page
+ */
 export default function ProfilePage() {
+  //region Hooks & State
+  /**
+   * Router and authentication context
+   */
   const router = useRouter();
   const { user, loading } = useAuth();
-
+  /**
+    * Local component state
+    * - profile: fetched user profile
+    * - displayName: editable display name
+    * - saving: save/update loading indicator
+    * - success: success message
+    * - error: error message
+    */
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-
+  //endregion Hooks & State
+  //region Helpers
+  /**
+   * getInitials
+   *
+   * Generates initials from a display name
+   *
+   * @param name - User display name
+   * @returns string - Uppercase initials
+   */
   const getInitials = (name: string) => {
     if (!name) return "";
     const parts = name.trim().split(" ");
@@ -45,16 +85,18 @@ export default function ProfilePage() {
       : parts[0][0].toUpperCase() +
       parts[parts.length - 1][0].toUpperCase();
   };
-
-  /* ---------- Fetch Profile ---------- */
+  //endregion Helpers
+  //region Fetch Profile
+  /**
+   * Fetches the authenticated user's profile from Firestore
+   * when the user object becomes available
+   */
   useEffect(() => {
     if (!user) return;
-
     const fetchProfile = async () => {
       try {
         setError("");
         const data = await getUserProfile(user.uid);
-
         if (data) {
           setProfile(data as UserProfile);
           setDisplayName(data.displayName || "");
@@ -64,15 +106,19 @@ export default function ProfilePage() {
         setError("Unable to load profile. Please try again.");
       }
     };
-
     fetchProfile();
   }, [user]);
-
-  /* ---------- Guards ---------- */
+  //endregion Fetch Profile
+  //region Guards
+  /**
+   * Loading state while auth is resolving
+   */
   if (loading) {
     return <p className="text-center mt-10 text-gray-500">Loading profile…</p>;
   }
-
+  /**
+    * Unauthenticated state
+    */
   if (!user) {
     return (
       <p className="text-center mt-10 text-gray-500">
@@ -80,21 +126,23 @@ export default function ProfilePage() {
       </p>
     );
   }
-
+  //endregion Guards
   const currentUser = user;
-
-  /* ---------- Save Display Name ---------- */
+  //region Save Display Name
+  /**
+   * handleSave
+   *
+   * Updates the user's display name in Firestore
+   */
   const handleSave = async () => {
     if (!displayName.trim()) {
       setError("Display name cannot be empty");
       return;
     }
-
     try {
       setSaving(true);
       setError("");
       setSuccess("");
-
       await updateUserProfile(currentUser.uid, { displayName });
       setSuccess("Profile updated successfully");
       router.back();
@@ -104,19 +152,24 @@ export default function ProfilePage() {
       setSaving(false);
     }
   };
-
-  /* ---------- Select Avatar ---------- */
+  //endregion Save Display Name
+  //region Select Avatar
+  /**
+   * handleAvatarSelect
+   *
+   * Updates the user's profile picture
+   *
+   * @param avatarUrl - Selected avatar image URL
+   */
   const handleAvatarSelect = async (avatarUrl: string) => {
     try {
       setSaving(true);
       setError("");
       setSuccess("");
-
       await updateUserProfile(currentUser.uid, { photoURL: avatarUrl });
       setProfile((prev) =>
         prev ? { ...prev, photoURL: avatarUrl } : prev
       );
-
       setSuccess("Profile picture updated");
     } catch {
       setError("Failed to update avatar");
@@ -124,17 +177,18 @@ export default function ProfilePage() {
       setSaving(false);
     }
   };
-
-  /* ---------- UI ---------- */
+  //endregion Select Avatar
+  //region Render
+  /**
+   * Renders profile UI and edit controls
+   */
   return (
     <AuthGuard>
       <div className="flex justify-center mt-10 px-4">
         <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white px-6 py-8 shadow-sm">
-
           <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
             Your profile
           </h2>
-
           {/* Avatar */}
           <div className="flex justify-center mb-6">
             {profile?.photoURL ? (
@@ -151,13 +205,11 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-
           {/* Avatar Picker */}
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700 text-center mb-3">
               Choose a profile picture
             </p>
-
             <div className="grid grid-cols-5 gap-3 justify-items-center">
               {PRESET_AVATARS.map((avatar) => (
                 <button
@@ -180,7 +232,6 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
-
           {/* Info */}
           <div className="text-sm text-gray-600 mb-6 space-y-1">
             <p>
@@ -194,7 +245,6 @@ export default function ProfilePage() {
               {profile?.createdAt?.toDate().toLocaleDateString() || "—"}
             </p>
           </div>
-
           {/* Display Name */}
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Display name
@@ -207,7 +257,6 @@ export default function ProfilePage() {
                        px-3 py-2 mb-4 text-sm text-gray-900
                        focus:outline-none focus:ring-2 focus:ring-gray-900/20"
           />
-
           {/* Actions */}
           <div className="flex gap-3 mt-4">
             <button
@@ -218,7 +267,6 @@ export default function ProfilePage() {
             >
               {saving ? "Saving..." : "Save changes"}
             </button>
-
             <button
               type="button"
               onClick={() => router.back()}
@@ -229,8 +277,6 @@ export default function ProfilePage() {
               Cancel
             </button>
           </div>
-
-
           {/* Messages */}
           {success && (
             <p className="mt-4 text-sm text-green-600 text-center">
@@ -242,7 +288,6 @@ export default function ProfilePage() {
               {error}
             </p>
           )}
-
           {error && (
             <div className="mt-4 text-center">
               <p className="text-sm text-red-600">{error}</p>
@@ -254,9 +299,10 @@ export default function ProfilePage() {
               </button>
             </div>
           )}
-
         </div>
       </div>
     </AuthGuard>
   );
+  //endregion Render
 }
+//endregion ProfilePage Component

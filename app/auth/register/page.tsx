@@ -1,8 +1,6 @@
 "use client";
-
 import RegisterForm from "@/components/auth/RegistrationForm";
 import { useEffect } from "react";
-
 //region RegisterPage Component
 /**
  * RegisterPage
@@ -15,7 +13,6 @@ import { useEffect } from "react";
  * @returns JSX.Element - Registration page layout with RegisterForm component
  */
 export default function RegisterPage() {
-
   //region Side Effects
   /**
    * useEffect
@@ -29,13 +26,11 @@ export default function RegisterPage() {
    */
   useEffect(() => {
     document.body.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = "auto";
     };
   }, []);
   //endregion Side Effects
-
   //region Render
   /**
    * Renders the registration container and form

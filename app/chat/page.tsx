@@ -1,7 +1,7 @@
 "use client";
 import { Suspense } from "react";
 import ChatPageClient from "./ChatPageClient";
- //region ChatPage Component
+//region ChatPage Component
 /**
  * ChatPage
  *
@@ -12,7 +12,7 @@ import ChatPageClient from "./ChatPageClient";
  * @returns JSX.Element - Suspense-wrapped chat page
  */
 export default function ChatPage() {
-    //region Render
+  //region Render
   /**
    * Renders chat page with loading fallback
    */
@@ -21,6 +21,6 @@ export default function ChatPage() {
       <ChatPageClient />
     </Suspense>
   );
- //endregion Render
+  //endregion Render
 }
 //endregion ChatPage Component

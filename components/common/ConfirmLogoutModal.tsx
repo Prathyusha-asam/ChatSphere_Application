@@ -1,35 +1,68 @@
 "use client";
-
 import Image from "next/image";
 import { useState } from "react";
-
-/* =======================
-   PROPS
-======================= */
+//region Props
+/**
+ * ConfirmLogoutModalProps
+ *
+ * Props for the logout confirmation modal.
+ */
 interface ConfirmLogoutModalProps {
+  /**
+   * Controls modal visibility
+   */
   open: boolean;
+  /**
+   * Called when user cancels the logout
+   */
   onCancel: () => void;
-  onConfirm: () => Promise<void>; // 🔑 async-safe
+  /**
+   * Called when user confirms logout
+   * Async-safe to allow awaiting sign-out logic
+   */
+  onConfirm: () => Promise<void>;
 }
-
-/* =======================
-   COMPONENT
-======================= */
+//endregion Props
+//region ConfirmLogoutModal Component
+/**
+ * ConfirmLogoutModal
+ *
+ * Modal dialog to confirm user logout.
+ * - Blocks interaction while logout is in progress
+ * - Handles async confirmation safely
+ * - Displays errors on failure
+ *
+ * @param open - Whether the modal is visible
+ * @param onCancel - Cancel callback
+ * @param onConfirm - Confirm callback (async)
+ * @returns JSX.Element | null
+ */
 export default function ConfirmLogoutModal({
   open,
   onCancel,
   onConfirm,
 }: ConfirmLogoutModalProps) {
+  //region Local State
+  /**
+   * Loading and error state
+   */
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  //endregion Local State
+  //region Guard
+  /**
+   * Do not render modal when closed
+   */
   if (!open) return null;
-
+  //endregion Guard
+  //region Handlers
+  /**
+   * Handles logout confirmation
+   */
   const handleConfirm = async () => {
     try {
       setLoading(true);
       setError("");
-
       await onConfirm();
     } catch (err) {
       console.error("Logout failed:", err);
@@ -38,7 +71,11 @@ export default function ConfirmLogoutModal({
       setLoading(false);
     }
   };
-
+  //endregion Handlers
+  //region Render
+  /**
+   * Renders confirmation modal UI
+   */
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay (disabled while loading) */}
@@ -46,7 +83,6 @@ export default function ConfirmLogoutModal({
         className="absolute inset-0 bg-black/70"
         onClick={!loading ? onCancel : undefined}
       />
-
       {/* Modal */}
       <div className="relative z-10 w-[360px] bg-white rounded-xl shadow-2xl p-6">
         {/* Icon */}
@@ -61,26 +97,22 @@ export default function ConfirmLogoutModal({
             />
           </div>
         </div>
-
         {/* Title */}
         <h3 className="text-lg font-semibold text-center text-gray-900 mb-2">
           Log out?
         </h3>
-
         {/* Message */}
         <p className="text-sm text-gray-500 text-center mb-4">
           Are you sure you want to log out?
           <br />
           You will need to sign in again to continue.
         </p>
-
         {/* Error */}
         {error && (
           <p className="mb-4 text-sm text-red-600 text-center">
             {error}
           </p>
         )}
-
         {/* Actions */}
         <div className="flex gap-3">
           <button
@@ -93,7 +125,6 @@ export default function ConfirmLogoutModal({
           >
             Cancel
           </button>
-
           <button
             onClick={handleConfirm}
             disabled={loading}
@@ -108,4 +139,6 @@ export default function ConfirmLogoutModal({
       </div>
     </div>
   );
+  //endregion Render
 }
+//endregion ConfirmLogoutModal Component

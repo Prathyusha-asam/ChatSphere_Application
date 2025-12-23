@@ -1,5 +1,4 @@
 "use client";
-
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -20,7 +19,6 @@ interface UserProfile {
     };
 }
 //endregion Types
-
 //region OtherUserProfilePage Component
 /**
  * OtherUserProfilePage
@@ -34,7 +32,7 @@ interface UserProfile {
  * @returns JSX.Element - User profile page
  */
 export default function OtherUserProfilePage() {
-     //region Hooks & State
+    //region Hooks & State
     /**
      * Route params and navigation
      */
@@ -49,8 +47,7 @@ export default function OtherUserProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
- //endregion Hooks & State
-
+    //endregion Hooks & State
     //region Helpers
     /**
      * getInitials
@@ -68,8 +65,7 @@ export default function OtherUserProfilePage() {
             : parts[0][0].toUpperCase() +
             parts[parts.length - 1][0].toUpperCase();
     };
-//endregion Helpers
-
+    //endregion Helpers
     //region Side Effects
     /**
      * useEffect
@@ -96,11 +92,9 @@ export default function OtherUserProfilePage() {
                 setLoading(false);
             }
         }
-
         loadProfile();
     }, [uid]);
- //endregion Side Effects
-
+    //endregion Side Effects
     //region Conditional Rendering
     /**
      * Loading state
@@ -108,14 +102,13 @@ export default function OtherUserProfilePage() {
     if (loading) {
         return <p className="text-center mt-10">Loading profile…</p>;
     }
- /**
+    /**
      * Error or missing profile state
      */
     if (error || !profile) {
         return <p className="text-center mt-10 text-red-600">{error}</p>;
     }
-//endregion Conditional Rendering
-
+    //endregion Conditional Rendering
     //region Render
     /**
      * Renders user profile details
@@ -124,7 +117,6 @@ export default function OtherUserProfilePage() {
         <AuthGuard>
             <div className="flex justify-center mt-10 px-4">
                 <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white px-6 py-8 shadow-sm">
-
                     {/* Back */}
                     <button
                         onClick={() => router.back()}
@@ -136,8 +128,6 @@ export default function OtherUserProfilePage() {
                     <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
                         {profile.displayName}
                     </h2>
-
-
                     {/* Avatar */}
                     <div className="flex justify-center mb-6">
                         {profile.photoURL ? (
@@ -154,27 +144,23 @@ export default function OtherUserProfilePage() {
                             </div>
                         )}
                     </div>
-
                     {/* Info */}
                     <div className="text-center space-y-2">
                         <p className="text-lg font-medium text-gray-900">
                             {profile.displayName}
                         </p>
-
                         <p className="text-sm text-gray-600">
                             {profile.email}
                         </p>
-
                         <p className="text-xs text-gray-500">
                             Joined on{" "}
                             {profile.createdAt?.toDate().toLocaleDateString() || "—"}
                         </p>
                     </div>
-
                 </div>
             </div>
         </AuthGuard>
     );
- //endregion Render
+    //endregion Render
 }
 //endregion OtherUserProfilePage Component

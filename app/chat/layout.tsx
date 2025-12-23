@@ -16,7 +16,7 @@ export default function ChatLayout({
 }: {
   children: React.ReactNode;
 }) {
-    //region Render
+  //region Render
   /**
    * Wraps children with:
    * - ErrorBoundary for graceful error handling
@@ -27,6 +27,6 @@ export default function ChatLayout({
       <ChatProvider>{children}</ChatProvider>
     </ErrorBoundary>
   );
-//endregion Render
+  //endregion Render
 }
 //endregion ChatLayout Component
