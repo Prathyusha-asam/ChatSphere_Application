@@ -130,6 +130,19 @@ export default function LoginForm() {
           Sign up
         </button>
       </p>
+      {error && (
+        <div className="mb-4 text-center">
+          <p className="text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="mt-1 text-sm underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
     </form>
   );
 }
