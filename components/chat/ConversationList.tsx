@@ -163,7 +163,6 @@ export default function ConversationList() {
    */
   const deleteConversation = async (conversationId: string) => {
     try {
-      // ✅ STEP 1: REMOVE FROM STATE FIRST
       setConversations((prev) =>
         prev.filter((c) => c.id !== conversationId)
       );
@@ -180,7 +179,6 @@ export default function ConversationList() {
         router.push("/chat");
       }
 
-      // ✅ STEP 2: THEN delete from Firestore
       const msgsQuery = query(
         collection(db, "messages"),
         where("conversationId", "==", conversationId)
