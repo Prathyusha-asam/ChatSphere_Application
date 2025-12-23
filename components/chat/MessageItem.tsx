@@ -5,14 +5,7 @@ import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
 import React from "react";
-import  Image  from "next/image";
-//region Constants
-/**
- * Context menu dimensions
- */
-const MENU_WIDTH = 176;
-const MENU_HEIGHT = 200;
-//endregion Constants
+import Image from "next/image";
 //region Types
 /**
  * MessageItemProps
@@ -90,27 +83,6 @@ function MessageItem({
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   //endregion Local State & Refs
-  //region Context Menu Handler
-  /**
-   * Opens context menu on right-click
-   */
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const clickX = e.clientX;
-      const clickY = e.clientY;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      let x = clickX;
-      let y = clickY;
-      if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
-      if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
-      setMenuPos({ x, y });
-      setMenuOpen(true);
-    },
-    []
-  );
-  //endregion Context Menu Handler
   //region Outside Click Handler
   /**
    * Closes context menu when clicking outside
@@ -159,7 +131,6 @@ function MessageItem({
   return (
     <>
       <div
-        onContextMenu={handleContextMenu}
         className={`flex flex-col max-w-[75%] cursor-pointer
           ${isMine ? "ml-auto items-end" : "mr-auto items-start"}`}
       >
@@ -172,7 +143,6 @@ function MessageItem({
           className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
             ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
         >
-          {/* 🔹 IMAGE (ADDED) */}
           {imageUrl && (
             <Image
               src={imageUrl}
@@ -184,10 +154,10 @@ function MessageItem({
           )}
           {/* Reply preview */}
           {replyTo && (
-<div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
+            <div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
               Replying to:{" "}
-<span className="italic">{replyTo.text}</span>
-</div>
+              <span className="italic">{replyTo.text}</span>
+            </div>
           )}
           {text}
           {editedAt && (
