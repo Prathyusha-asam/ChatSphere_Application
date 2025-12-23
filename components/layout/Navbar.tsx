@@ -101,7 +101,7 @@ export default function Navbar() {
    * Renders navbar UI
    */
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 h-14 sm:h-[72px]">
       {/* Logo / Title */}
       <h2 className="text-sm font-semibold text-gray-900">
         ChatSphere
