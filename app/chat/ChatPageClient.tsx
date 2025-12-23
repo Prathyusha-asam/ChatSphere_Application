@@ -12,10 +12,45 @@ import MessageList from "@/components/chat/MessageList";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import EmptyState from "@/components/ui/EmptyState";
 
+//region ChatPageClient Component
+/**
+ * ChatPageClient
+ *
+ * Client-side chat page container.
+ * - Reads conversation ID from URL query params
+ * - Initializes active conversation in chat context
+ * - Renders conversation list and chat panel
+ * - Shows empty state when no conversation is selected
+ *
+ * @returns JSX.Element - Protected chat layout
+ */
 export default function ChatPageClient() {
+    //region Hooks & State
+  /**
+   * Extracts conversation ID from URL query params (?cid=)
+   */
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("cid");
+  /**
+   * Chat context actions & state
+   * - startConversation: initializes or switches active conversation
+   * - editMessage: used to re-key MessageInput during edit mode
+   */
   const { startConversation, editMessage } = useChat();
+  //endregion Hooks & State
+
+  //region Side Effects
+  /**
+   * useEffect
+   *
+   * Purpose:
+   * - Automatically starts a conversation when a conversation ID
+   *   is present in the URL
+   *
+   * Behavior:
+   * - Triggers on conversationId change
+   * - Initializes conversation with empty participants (resolved later)
+   */
   useEffect(() => {
     if (conversationId) {
       startConversation({
@@ -24,7 +59,12 @@ export default function ChatPageClient() {
       });
     }
   }, [conversationId]);
+ //endregion Side Effects
 
+  //region Render
+  /**
+   * Renders the chat layout inside AuthGuard
+   */
   return (
     <AuthGuard>
       <div className="flex h-[calc(100vh-72px)] bg-gray-50">
@@ -73,4 +113,6 @@ export default function ChatPageClient() {
       </div>
     </AuthGuard>
   );
+  //endregion Render
 }
+//endregion ChatPageClient Component

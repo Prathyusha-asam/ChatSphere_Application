@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getUserProfile } from "@/lib/firestore";
 import Image from "next/image";
-
+//region Types
+/**
+ * UserProfile
+ *
+ * Represents a public user profile fetched from Firestore
+ */
 interface UserProfile {
     email: string;
     displayName: string;
@@ -14,15 +19,47 @@ interface UserProfile {
         toDate: () => Date;
     };
 }
+//endregion Types
 
+//region OtherUserProfilePage Component
+/**
+ * OtherUserProfilePage
+ *
+ * Displays another user's public profile.
+ * - Fetches user profile using UID from route params
+ * - Handles loading and error states
+ * - Displays avatar, name, email, and join date
+ * - Protected by AuthGuard
+ *
+ * @returns JSX.Element - User profile page
+ */
 export default function OtherUserProfilePage() {
+     //region Hooks & State
+    /**
+     * Route params and navigation
+     */
     const { uid } = useParams<{ uid: string }>();
     const router = useRouter();
-
+    /**
+     * Local state
+     * - profile: fetched user profile data
+     * - loading: loading indicator
+     * - error: error message
+     */
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+ //endregion Hooks & State
 
+    //region Helpers
+    /**
+     * getInitials
+     *
+     * Generates initials from a display name
+     *
+     * @param name - User display name
+     * @returns string - Uppercase initials
+     */
     const getInitials = (name: string) => {
         if (!name) return "";
         const parts = name.trim().split(" ");
@@ -31,7 +68,19 @@ export default function OtherUserProfilePage() {
             : parts[0][0].toUpperCase() +
             parts[parts.length - 1][0].toUpperCase();
     };
+//endregion Helpers
 
+    //region Side Effects
+    /**
+     * useEffect
+     *
+     * Purpose:
+     * - Fetches user profile when UID changes
+     *
+     * Behavior:
+     * - Shows error if user not found
+     * - Handles loading and failure states
+     */
     useEffect(() => {
         async function loadProfile() {
             try {
@@ -50,15 +99,27 @@ export default function OtherUserProfilePage() {
 
         loadProfile();
     }, [uid]);
+ //endregion Side Effects
 
+    //region Conditional Rendering
+    /**
+     * Loading state
+     */
     if (loading) {
         return <p className="text-center mt-10">Loading profile…</p>;
     }
-
+ /**
+     * Error or missing profile state
+     */
     if (error || !profile) {
         return <p className="text-center mt-10 text-red-600">{error}</p>;
     }
+//endregion Conditional Rendering
 
+    //region Render
+    /**
+     * Renders user profile details
+     */
     return (
         <AuthGuard>
             <div className="flex justify-center mt-10 px-4">
@@ -114,4 +175,6 @@ export default function OtherUserProfilePage() {
             </div>
         </AuthGuard>
     );
+ //endregion Render
 }
+//endregion OtherUserProfilePage Component
