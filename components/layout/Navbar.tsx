@@ -6,17 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ConfirmLogoutModal from "@/components/common/ConfirmLogoutModal";
-//region Types
-/**
- * UserProfile
- *
- * Minimal user profile data displayed in the navbar
- */
-interface UserProfile {
-  displayName: string;
-  email: string;
-  photoURL?: string;
-}
+import { UserProfile } from "@/types/firestore";
 //region Types
 /**
  * UserProfile

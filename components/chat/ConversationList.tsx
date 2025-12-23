@@ -21,32 +21,8 @@ import ConversationSkeleton from "@/components/skeletons/ConversationsSkeleton";
 import EmptyState from "@/components/ui/EmptyState";
 import StartConversation from "./StartConversation";
 import Image from "next/image";
-//region Types
-/**
- * ConversationItem
- *
- * Represents a conversation entry shown in the list
- */
-interface ConversationItem {
-  id: string;
-  participants: string[];
-  lastMessage?: string;
-  lastMessageAt?: {
-    toDate: () => Date;
-  } | null;
-  isMuted?: boolean;
-  isFavorite?: boolean;
-}
-/**
- * UserProfile
- *
- * Minimal public profile used in conversation list
- */
-interface UserProfile {
-  displayName: string;
-  photoURL?: string;
-}
-//endregion Types
+import { ConversationItem, UserProfile } from "@/types/firestore";
+
 //region ConversationList Component
 /**
  * ConversationList
@@ -167,6 +143,12 @@ export default function ConversationList() {
           [otherId]: {
             displayName: data.displayName,
             photoURL: data.photoURL,
+            userId: otherId,
+            isOnline: data.isOnline,
+            lastSeen: data.lastSeen,
+            createdAt: data.createdAt,
+            email: data.email,
+            id: data.id,
           },
         }));
       }
@@ -179,39 +161,39 @@ export default function ConversationList() {
    *
    * @param conversationId - ID of the conversation to delete
    */
- const deleteConversation = async (conversationId: string) => {
-  try {
-    // ✅ STEP 1: REMOVE FROM STATE FIRST
-    setConversations((prev) =>
-      prev.filter((c) => c.id !== conversationId)
-    );
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      // ✅ STEP 1: REMOVE FROM STATE FIRST
+      setConversations((prev) =>
+        prev.filter((c) => c.id !== conversationId)
+      );
 
-    setUnreadCounts((prev) => {
-      const copy = { ...prev };
-      delete copy[conversationId];
-      return copy;
-    });
+      setUnreadCounts((prev) => {
+        const copy = { ...prev };
+        delete copy[conversationId];
+        return copy;
+      });
 
-    setContextMenu(null);
+      setContextMenu(null);
 
-    if (activeCid === conversationId) {
-      router.push("/chat");
+      if (activeCid === conversationId) {
+        router.push("/chat");
+      }
+
+      // ✅ STEP 2: THEN delete from Firestore
+      const msgsQuery = query(
+        collection(db, "messages"),
+        where("conversationId", "==", conversationId)
+      );
+
+      const msgsSnap = await getDocs(msgsQuery);
+      await Promise.all(msgsSnap.docs.map((d) => deleteDoc(d.ref)));
+      await deleteDoc(doc(db, "conversations", conversationId));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete conversation");
     }
-
-    // ✅ STEP 2: THEN delete from Firestore
-    const msgsQuery = query(
-      collection(db, "messages"),
-      where("conversationId", "==", conversationId)
-    );
-
-    const msgsSnap = await getDocs(msgsQuery);
-    await Promise.all(msgsSnap.docs.map((d) => deleteDoc(d.ref)));
-    await deleteDoc(doc(db, "conversations", conversationId));
-  } catch (err) {
-    console.error(err);
-    alert("Failed to delete conversation");
-  }
-};
+  };
   //endregion Delete Conversation
   //region Helpers
   /**

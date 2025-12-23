@@ -5,22 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile, updateUserProfile } from "@/lib/firestore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-//region Types
-/**
- * UserProfile
- *
- * Represents the authenticated user's profile data
- * stored in Firestore
- */
-interface UserProfile {
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  createdAt?: {
-    toDate: () => Date;
-  };
-}
-//endregion Types
+import { UserProfile } from "@/types/firestore";
 //region Constants
 /**
  * PRESET_AVATARS

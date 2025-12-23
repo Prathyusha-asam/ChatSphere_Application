@@ -7,18 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { createConversation } from "@/lib/conversations";
 import { useRouter } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";
-//region Types
-/**
- * User
- *
- * Represents a selectable user for starting a conversation
- */
-interface User {
-  userId: string;
-  displayName?: string;
-  photoURL?: string;
-}
-//endregion Types
+import { UserProfile } from "@/types/firestore";
 //region StartConversation Component
 /**
  * StartConversation
@@ -43,7 +32,7 @@ export default function StartConversation({
    */
   const { user } = useAuth();
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -58,9 +47,9 @@ export default function StartConversation({
         setLoading(true);
         setError("");
         const snap = await getDocs(collection(db, "users"));
-        const list: User[] = [];
+        const list: UserProfile[] = [];
         snap.forEach((doc) => {
-          const data = doc.data() as User;
+          const data = doc.data() as UserProfile;
           if (data.userId && data.userId !== user?.uid) {
             list.push(data);
           }

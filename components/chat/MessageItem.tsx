@@ -5,7 +5,8 @@ import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
 import React from "react";
-import  Image  from "next/image";
+import Image from "next/image";
+import { MessageItemProps } from "@/types/firestore";
 //region Constants
 /**
  * Context menu dimensions
@@ -13,34 +14,7 @@ import  Image  from "next/image";
 const MENU_WIDTH = 176;
 const MENU_HEIGHT = 200;
 //endregion Constants
-//region Types
-/**
- * MessageItemProps
- *
- * Props for rendering a single chat message
- */
-interface MessageItemProps {
-  id: string;
-  text: string;
-  senderName: string;
-  senderId: string;
-  createdAt?: {
-    toDate: () => Date;
-  };
-  editedAt?: {
-    toDate?: () => Date;
-  };
-  replyTo?: {
-    id: string;
-    text: string;
-    senderId?: string;
-  };
-  // ADD (NON-BREAKING)
-  imageUrl?: string | null;
-  isRead?: boolean;
-  deliveredAt?: any;
-}
-//endregion Types
+
 //region MessageItem Component
 /**
  * MessageItem
@@ -184,10 +158,10 @@ function MessageItem({
           )}
           {/* Reply preview */}
           {replyTo && (
-<div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
+            <div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
               Replying to:{" "}
-<span className="italic">{replyTo.text}</span>
-</div>
+              <span className="italic">{replyTo.text}</span>
+            </div>
           )}
           {text}
           {editedAt && (

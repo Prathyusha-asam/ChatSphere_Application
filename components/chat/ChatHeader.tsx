@@ -19,22 +19,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
-//region Types
-/**
- * UserProfile
- *
- * Represents the other participant's public profile
- * displayed in the chat header
- */
-interface UserProfile {
-  displayName: string;
-  photoURL?: string;
-  isOnline?: boolean;
-  lastSeen?: {
-    toDate: () => Date;
-  };
-}
-//endregion Types
+import { UserProfile } from "@/types/firestore";
 //region ChatHeader Component
 /**
  * ChatHeader
