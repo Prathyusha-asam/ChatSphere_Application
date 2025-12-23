@@ -2,7 +2,7 @@
 "use client";
 import AuthGuard from "@/components/layout/AuthGuard";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useChat } from "@/hooks/useChat";
 import ConversationList from "@/components/chat/ConversationList";
 import ChatHeader from "@/components/chat/ChatHeader";
@@ -35,6 +35,7 @@ export default function ChatPageClient() {
    * - editMessage: used to re-key MessageInput during edit mode
    */
   const { startConversation, editMessage } = useChat();
+  const [isMobile, setIsMobile] = useState(false);
   //endregion Hooks & State
   //region Side Effects
   /**
@@ -56,6 +57,12 @@ export default function ChatPageClient() {
       });
     }
   }, [conversationId]);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   //endregion Side Effects
   //region Render
   /**
@@ -63,15 +70,21 @@ export default function ChatPageClient() {
    */
   return (
     <AuthGuard>
-      <div className="flex h-[calc(100vh-72px)] bg-gray-50">
+      <div className="flex h-[calc(100dvh-var(--navbar-height,72px))] bg-gray-50">
         {/* LEFT SIDEBAR */}
-        <div className="w-80 border-r border-gray-200 bg-white">
+        <div className="hidden md:flex w-80 border-r border-gray-200 bg-white">
           <ConversationList />
         </div>
+        {/* MOBILE FULLSCREEN CONVERSATION LIST */}
+        {!conversationId && isMobile && (
+          <div className="flex flex-1 bg-white">
+            <ConversationList />
+          </div>
+        )}
         {/* RIGHT CHAT AREA */}
         <div className="flex flex-1 flex-col bg-white">
           {/* Empty State (ONLY CHANGE) */}
-          {!conversationId && (
+          {!conversationId && !isMobile && (
             <div className="flex flex-1 items-center justify-center">
               <EmptyState
                 title="Select a conversation"
@@ -88,11 +101,11 @@ export default function ChatPageClient() {
                 <ChatHeader />
               </div>
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 hide-scrollbar">
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 hide-scrollbar">
                 <MessageList />
               </div>
               {/* Typing */}
-              <div className="px-6">
+              <div className="px-4 sm:px-6">
                 <TypingIndicator />
               </div>
               <div className="border-t border-gray-200 px-4 py-3 bg-white">
