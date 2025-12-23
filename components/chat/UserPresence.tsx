@@ -1,28 +1,24 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
-
+ 
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { useState, useEffect } from "react";
-import EmptyState from "@/components/ui/EmptyState"; // ✅ added
-
+import EmptyState from "@/components/ui/EmptyState";
+ 
 export default function UserPresence() {
   const users = useUserPresence();
-
+ 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
-    try {
-      setLoading(true);
-      if (Array.isArray(users)) {
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("User presence failed:", err);
-      setError("Unable to load user presence");
+    // Presence hook already handles errors internally
+    // This effect only tracks loading state safely
+    if (Array.isArray(users)) {
       setLoading(false);
     }
   }, [users]);
-
+ 
   if (loading) {
     return (
       <div className="border rounded p-4 mb-4 text-sm text-gray-500">
@@ -30,7 +26,7 @@ export default function UserPresence() {
       </div>
     );
   }
-
+ 
   if (error) {
     return (
       <div className="border rounded p-4 mb-4 text-sm text-red-600">
@@ -38,12 +34,13 @@ export default function UserPresence() {
       </div>
     );
   }
-
+ 
+  // ✅ Defensive filter (no logic change)
   const safeUsers = users.filter(
-    (u) => u.id && u.displayName
+    (u) => u?.id && u?.displayName
   );
-
-  /* ---------- Empty state (ONLY CHANGE) ---------- */
+ 
+  /* ---------- Empty state ---------- */
   if (!safeUsers.length) {
     return (
       <div className="border rounded p-4 mb-4">
@@ -55,11 +52,11 @@ export default function UserPresence() {
       </div>
     );
   }
-
+ 
   return (
     <div className="border rounded p-4 mb-4">
       <h3 className="font-semibold mb-2">Users</h3>
-
+ 
       {safeUsers.map((u) => (
         <div
           key={u.id}

@@ -28,7 +28,8 @@ interface MessageItemProps {
     senderId?: string;
   };
 
-  // ✅ ADD (non-breaking)
+  // ✅ ADD (NON-BREAKING)
+  imageUrl?: string | null;
   isRead?: boolean;
   deliveredAt?: any;
 }
@@ -41,6 +42,7 @@ function MessageItem({
   createdAt,
   editedAt,
   replyTo,
+  imageUrl, // 🔹 ADDED
   isRead,
   deliveredAt,
 }: MessageItemProps) {
@@ -49,7 +51,7 @@ function MessageItem({
   const {
     currentConversation,
     setReplyTo,
-    setEditMessage,// NEW
+    setEditMessage,
   } = useChat();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -90,13 +92,12 @@ function MessageItem({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ---------- Delete (MERGED + NT-29) ---------- */
+  /* ---------- Delete ---------- */
   const handleDelete = useCallback(async () => {
     if (!id || !currentConversation) return;
-
     try {
       await deleteMessage(currentConversation.id, id);
-    } catch (err) {
+    } catch {
       setMenuOpen(false);
     }
   }, [id, currentConversation]);
@@ -115,7 +116,6 @@ function MessageItem({
 
   return (
     <>
-      {/* Message bubble */}
       <div
         onContextMenu={handleContextMenu}
         className={`flex flex-col max-w-[75%] cursor-pointer
@@ -131,17 +131,17 @@ function MessageItem({
           className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
             ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
         >
-          {/* Reply preview */}
-          {replyTo && (
-            <div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
-              Replying to:{" "}
-              <span className="italic">{replyTo.text}</span>
-            </div>
+          {/* 🔹 IMAGE (ADDED) */}
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt="Sent image"
+              className="mb-2 max-w-[240px] rounded-lg"
+            />
           )}
 
           {text}
 
-          {/* Edited label */}
           {editedAt && (
             <span className="ml-1 text-[10px] text-gray-400">
               (edited)
@@ -155,7 +155,6 @@ function MessageItem({
               hour: "2-digit",
               minute: "2-digit",
             })}
-            {/* ✅ Seen / Delivered */}
             {isMine && (
               <span className="ml-1">
                 {isRead
@@ -169,7 +168,6 @@ function MessageItem({
         )}
       </div>
 
-      {/* Context Menu */}
       {menuOpen && (
         <div
           ref={menuRef}
@@ -178,17 +176,11 @@ function MessageItem({
                      bg-white shadow-lg py-1 text-sm"
         >
           <MenuItem label="Reply" onClick={handleReply} />
-
           {isMine && <MenuItem label="Edit" onClick={handleEdit} />}
-
           {isMine && (
             <>
               <div className="my-1 h-px bg-gray-200" />
-              <MenuItem
-                label="Delete"
-                danger
-                onClick={handleDelete}
-              />
+              <MenuItem label="Delete" danger onClick={handleDelete} />
             </>
           )}
         </div>
@@ -221,4 +213,5 @@ function MenuItem({
     </button>
   );
 }
+
 export default React.memo(MessageItem);
