@@ -97,13 +97,13 @@ function MessageItem({
   }, [id, text, setEditMessage]);
   //endregion Actions
   const handleContextMenu = (e: React.MouseEvent) => {
-  e.preventDefault();
-  setMenuPos({
-    x: e.clientX,
-    y: e.clientY,
-  });
-  setMenuOpen(true);
-};
+    e.preventDefault();
+    setMenuPos({
+      x: e.clientX,
+      y: e.clientY,
+    });
+    setMenuOpen(true);
+  };
   //region Render
   /**
    * Renders message bubble and context menu
@@ -122,7 +122,8 @@ function MessageItem({
         )}
         <div
           className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
-            ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
+          whitespace-pre-wrap break-all overflow-wrap-anywhere max-w-full
+          ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
         >
           {imageUrl && (
             <Image
