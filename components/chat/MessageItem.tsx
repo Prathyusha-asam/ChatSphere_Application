@@ -5,43 +5,8 @@ import { auth } from "@/lib/firebase";
 import { useChat } from "@/hooks/useChat";
 import { deleteMessage } from "@/lib/messages";
 import React from "react";
-import  Image  from "next/image";
-//region Constants
-/**
- * Context menu dimensions
- */
-const MENU_WIDTH = 176;
-const MENU_HEIGHT = 200;
-//endregion Constants
-//region Types
-/**
- * MessageItemProps
- *
- * Props for rendering a single chat message
- */
-interface MessageItemProps {
-  id: string;
-  text: string;
-  senderName: string;
-  senderId: string;
-  createdAt?: {
-    toDate: () => Date;
-  };
-  editedAt?: {
-    toDate?: () => Date;
-  };
-  replyTo?: {
-    id: string;
-    text: string;
-    senderId?: string;
-  };
-  // ADD (NON-BREAKING)
-  imageUrl?: string | null;
-  isRead?: boolean;
-  deliveredAt?: any;
-}
-//endregion Types
-//region MessageItem Component
+import Image from "next/image";
+import { MessageItemProps } from "@/types/firestore";
 /**
  * MessageItem
  *
@@ -62,7 +27,7 @@ function MessageItem({
   createdAt,
   editedAt,
   replyTo,
-  imageUrl, // 🔹 ADDED
+  imageUrl,
   isRead,
   deliveredAt,
 }: MessageItemProps) {
@@ -90,27 +55,6 @@ function MessageItem({
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   //endregion Local State & Refs
-  //region Context Menu Handler
-  /**
-   * Opens context menu on right-click
-   */
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const clickX = e.clientX;
-      const clickY = e.clientY;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      let x = clickX;
-      let y = clickY;
-      if (clickX + MENU_WIDTH > vw) x = vw - MENU_WIDTH - 8;
-      if (clickY + MENU_HEIGHT > vh) y = vh - MENU_HEIGHT - 8;
-      setMenuPos({ x, y });
-      setMenuOpen(true);
-    },
-    []
-  );
-  //endregion Context Menu Handler
   //region Outside Click Handler
   /**
    * Closes context menu when clicking outside
@@ -152,6 +96,14 @@ function MessageItem({
     setMenuOpen(false);
   }, [id, text, setEditMessage]);
   //endregion Actions
+  const handleContextMenu = (e: React.MouseEvent) => {
+  e.preventDefault();
+  setMenuPos({
+    x: e.clientX,
+    y: e.clientY,
+  });
+  setMenuOpen(true);
+};
   //region Render
   /**
    * Renders message bubble and context menu
@@ -172,7 +124,6 @@ function MessageItem({
           className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
             ${isMine ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"}`}
         >
-          {/* 🔹 IMAGE (ADDED) */}
           {imageUrl && (
             <Image
               src={imageUrl}
@@ -184,10 +135,10 @@ function MessageItem({
           )}
           {/* Reply preview */}
           {replyTo && (
-<div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
+            <div className="mb-1 rounded-lg bg-gray-200 px-2 py-1 text-xs text-gray-700">
               Replying to:{" "}
-<span className="italic">{replyTo.text}</span>
-</div>
+              <span className="italic">{replyTo.text}</span>
+            </div>
           )}
           {text}
           {editedAt && (

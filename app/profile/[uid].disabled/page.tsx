@@ -4,21 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getUserProfile } from "@/lib/firestore";
 import Image from "next/image";
-//region Types
-/**
- * UserProfile
- *
- * Represents a public user profile fetched from Firestore
- */
-interface UserProfile {
-    email: string;
-    displayName: string;
-    photoURL?: string;
-    createdAt?: {
-        toDate: () => Date;
-    };
-}
-//endregion Types
+import { UserProfile } from "@/types/firestore";
+
 //region OtherUserProfilePage Component
 /**
  * OtherUserProfilePage

@@ -18,23 +18,9 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams, useRouter } from "next/navigation";
-import { MoreVertical } from "lucide-react";
-//region Types
-/**
- * UserProfile
- *
- * Represents the other participant's public profile
- * displayed in the chat header
- */
-interface UserProfile {
-  displayName: string;
-  photoURL?: string;
-  isOnline?: boolean;
-  lastSeen?: {
-    toDate: () => Date;
-  };
-}
-//endregion Types
+import { MoreVertical,ArrowLeft } from "lucide-react";
+import { UserProfile } from "@/types/firestore";
+
 //region ChatHeader Component
 /**
  * ChatHeader
@@ -81,6 +67,15 @@ export default function ChatHeader() {
     ? doc(db, "conversations", conversationId)
     : null;
   //endregion Firestore References
+  const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  const check = () => setIsMobile(window.innerWidth < 768);
+  check();
+  window.addEventListener("resize", check);
+  return () => window.removeEventListener("resize", check);
+}, []);
+
   //region MenuItem Component
   /**
    * MenuItem
@@ -266,40 +261,54 @@ export default function ChatHeader() {
   return (
     <div className="relative flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
       {/* LEFT → Profile */}
-      <div
-        onClick={() => router.push(`/profile/${otherUserId}`)}
-        className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-md px-2 py-1"
-      >
-        {profile.photoURL ? (
-          <img
-            src={profile.photoURL}
-            alt="Avatar"
-            className="w-9 h-9 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold">
-            {profile.displayName?.[0]?.toUpperCase()}
-          </div>
+      <div className="flex items-center gap-2">
+        {isMobile && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push("/chat");
+            }}
+            className="p-2 rounded-full hover:bg-gray-100"
+          >
+            <ArrowLeft size={20} />
+          </button>
         )}
-        {/* User info */}
-        <div className="flex flex-col leading-tight">
-          <span className="text-sm font-medium text-gray-900">
-            {profile.displayName}
-          </span>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            {profile.isOnline ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span>Online</span>
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-gray-400" />
-                <span>
-                  Last seen {formatLastSeen(profile.lastSeen)}
-                </span>
-              </>
-            )}
+
+        <div
+          onClick={() => router.push(`/profile/${otherUserId}`)}
+          className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-md px-2 py-1"
+        >
+          {profile.photoURL ? (
+            <img
+              src={profile.photoURL}
+              alt="Avatar"
+              className="w-9 h-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold">
+              {profile.displayName?.[0]?.toUpperCase()}
+            </div>
+          )}
+          {/* User info */}
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-medium text-gray-900">
+              {profile.displayName}
+            </span>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              {profile.isOnline ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span>Online</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span>
+                    Last seen {formatLastSeen(profile.lastSeen)}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

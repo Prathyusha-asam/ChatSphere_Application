@@ -1,6 +1,7 @@
 "use client";
 import { useContext } from "react";
-import { ChatContext, ChatContextType } from "@/context/ChatContext";
+import { ChatContext } from "@/context/ChatContext";
+import { ChatContextType } from "@/types/firestore";
 export function useChat(): ChatContextType {
   //region Use Chat Context
   /**

@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     // #region HTML Structure
     <html lang="en">
-      <body>
+      <body className="min-h-[100dvh] w-full overflow-x-hidden bg-white">
         <ErrorBoundary>
           <AuthProvider>
             {/* Global Navigation */}
