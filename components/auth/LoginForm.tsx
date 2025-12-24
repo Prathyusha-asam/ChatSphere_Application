@@ -58,6 +58,11 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+     // added (non-breaking safety check)
+    if (email !== email.toLowerCase()) {
+      setError("Email must be in lowercase only");
+      return;
+    }
     try {
       setLoading(true);
       await setPersistence(
