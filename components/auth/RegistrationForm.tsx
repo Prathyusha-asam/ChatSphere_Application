@@ -13,7 +13,7 @@ function getPasswordStrength(password: string): PasswordStrength {
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
- 
+
   if (score <= 1) return "weak";
   if (score === 2 || score === 3) return "medium";
   return "strong";
@@ -38,8 +38,16 @@ export default function RegisterForm() {
    */
   const router = useRouter();
   /**
-   * Local form state
-   */
+  * Local form state
+  * - displayName: user's full name
+  * - email: user's email address
+  * - password: password input
+  * - confirmPassword: confirmation password input
+  * - showPassword / showConfirmPassword: password visibility toggles
+  * - error: error message
+  * - success: success message
+  * - loading: submit loading state
+  */
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,7 +64,7 @@ export default function RegisterForm() {
   //region Email Exists Check
   const checkEmailExists = async () => {
     if (!email) return;
- 
+
     try {
       const methods = await fetchSignInMethodsForEmail(auth, email);
       if (methods.length > 0) {
@@ -71,8 +79,16 @@ export default function RegisterForm() {
   //endregion Email Exists Check
   //region Submit Handler
   /**
-   * handleSubmit
-   */
+  * handleSubmit
+  *
+  * Handles registration form submission.
+  * - Validates required fields
+  * - Ensures password and confirmation match
+  * - Creates user account
+  * - Redirects user to login page on success
+  *
+  * @param e - React form submit event
+  */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -85,7 +101,7 @@ export default function RegisterForm() {
     }
     try {
       setLoading(true);
- 
+
       //  safety check (does not replace existing logic)
       //  ALWAYS check email existence before signup
       const methods = await fetchSignInMethodsForEmail(auth, email);
@@ -104,7 +120,7 @@ export default function RegisterForm() {
     }
   };
   //endregion Submit Handler
- 
+
   //region Render
   /**
    * Renders registration form UI
@@ -117,14 +133,14 @@ export default function RegisterForm() {
       <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
         Create your account
       </h2>
- 
+
       {error && (
         <p className="mb-4 text-sm text-red-600 text-center">{error}</p>
       )}
       {success && (
         <p className="mb-4 text-sm text-green-600 text-center">{success}</p>
       )}
- 
+
       {/* Full Name */}
       <div className="relative mb-5">
         <input
@@ -189,19 +205,19 @@ export default function RegisterForm() {
           <div className="h-1.5 w-full rounded bg-gray-200">
             <div
               className={`h-1.5 rounded transition-all ${passwordStrength === "weak"
-                  ? "w-1/3 bg-red-500"
-                  : passwordStrength === "medium"
-                    ? "w-2/3 bg-yellow-500"
-                    : "w-full bg-green-600"
+                ? "w-1/3 bg-red-500"
+                : passwordStrength === "medium"
+                  ? "w-2/3 bg-yellow-500"
+                  : "w-full bg-green-600"
                 }`}
             />
           </div>
           <p
             className={`mt-1 text-xs font-medium ${passwordStrength === "weak"
-                ? "text-red-600"
-                : passwordStrength === "medium"
-                  ? "text-yellow-600"
-                  : "text-green-600"
+              ? "text-red-600"
+              : passwordStrength === "medium"
+                ? "text-yellow-600"
+                : "text-green-600"
               }`}
           >
             {passwordStrength === "weak"
@@ -254,5 +270,4 @@ export default function RegisterForm() {
   //endregion Render
 }
 //endregion RegisterForm Component
- 
- 
+
