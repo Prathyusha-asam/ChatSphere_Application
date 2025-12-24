@@ -1,15 +1,12 @@
 "use client";
- 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth";
 import { getAuthErrorMessage } from "@/lib/getAuthErrorMessage";
 import { fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
- 
 //region Password Strength Helper
 type PasswordStrength = "weak" | "medium" | "strong";
- 
 function getPasswordStrength(password: string): PasswordStrength {
   let score = 0;
   if (password.length >= 8) score++;
@@ -22,7 +19,6 @@ function getPasswordStrength(password: string): PasswordStrength {
   return "strong";
 }
 //endregion Password Strength Helper
- 
 //region RegisterForm Component
 /**
  * RegisterForm
@@ -41,7 +37,6 @@ export default function RegisterForm() {
    * Router for navigation
    */
   const router = useRouter();
- 
   /**
    * Local form state
    */
@@ -54,12 +49,10 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
- 
   //  added (non-breaking)
   const [passwordStrength, setPasswordStrength] =
     useState<PasswordStrength>("weak");
   //endregion Hooks & State
- 
   //region Email Exists Check
   const checkEmailExists = async () => {
     if (!email) return;
@@ -75,9 +68,7 @@ export default function RegisterForm() {
       // ignore
     }
   };
- 
   //endregion Email Exists Check
- 
   //region Submit Handler
   /**
    * handleSubmit
@@ -103,8 +94,6 @@ export default function RegisterForm() {
         setLoading(false);
         return;
       }
- 
- 
       await signUp(email, password, displayName);
       setSuccess("Account created successfully. Redirecting...");
       router.push("/auth/login");
@@ -153,7 +142,6 @@ export default function RegisterForm() {
           Full name
         </label>
       </div>
- 
       {/* Email */}
       <div className="relative mb-5">
         <input
@@ -175,7 +163,6 @@ export default function RegisterForm() {
           Email address
         </label>
       </div>
- 
       {/* Password */}
       <div className="relative mb-2">
         <input
@@ -196,7 +183,6 @@ export default function RegisterForm() {
           Password
         </label>
       </div>
- 
       {/* Password Strength Meter */}
       {password && (
         <div className="mb-5">
@@ -226,7 +212,6 @@ export default function RegisterForm() {
           </p>
         </div>
       )}
- 
       {/* Confirm Password */}
       <div className="relative mb-6">
         <input
@@ -244,7 +229,6 @@ export default function RegisterForm() {
           Confirm password
         </label>
       </div>
- 
       {/* Submit Button */}
       <button
         type="submit"
@@ -254,7 +238,6 @@ export default function RegisterForm() {
       >
         {loading ? "Creating account..." : "Create account"}
       </button>
- 
       {/* Login Redirect */}
       <p className="mt-6 text-center text-sm text-gray-600">
         Already have an account?{" "}
