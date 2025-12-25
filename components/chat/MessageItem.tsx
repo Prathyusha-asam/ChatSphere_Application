@@ -7,7 +7,7 @@ import { deleteMessage } from "@/lib/messages";
 import React from "react";
 import Image from "next/image";
 import { MessageItemProps } from "@/types/firestore";
-
+ 
 /**
  * MessageItem
  *
@@ -28,7 +28,7 @@ function MessageItem({
   createdAt,
   editedAt,
   replyTo,
-  imageUrl, // 🔹 ADDED
+  imageUrl,
   isRead,
   deliveredAt,
 }: MessageItemProps) {
@@ -97,6 +97,16 @@ function MessageItem({
     setMenuOpen(false);
   }, [id, text, setEditMessage]);
   //endregion Actions
+ 
+  const handleContextMenu = (e: React.MouseEvent) => {
+  e.preventDefault();
+  setMenuPos({
+    x: e.clientX,
+    y: e.clientY,
+  });
+  setMenuOpen(true);
+};
+ 
   //region Render
   /**
    * Renders message bubble and context menu
@@ -104,6 +114,7 @@ function MessageItem({
   return (
     <>
       <div
+        onContextMenu={handleContextMenu}
         className={`flex flex-col max-w-[75%] cursor-pointer
           ${isMine ? "ml-auto items-end" : "mr-auto items-start"}`}
       >
@@ -209,3 +220,5 @@ function MenuItem({
 }
 //endregion MenuItem Component
 export default React.memo(MessageItem);
+ 
+ 
