@@ -1,3 +1,4 @@
+
 //region Firebase Core Imports
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
@@ -60,3 +61,4 @@ if (typeof window !== "undefined") {
 //region Default Export
 export default app;
 //endregion Default Export
+
